@@ -50,6 +50,8 @@
 #include <sys/malloc.h>
 #include <sys/mbuf.h>
 #include <sys/ctype.h>
+#include <sys/socket.h>
+#include <sys/un.h>
 
 #include <machine/stdarg.h>
 
@@ -1186,6 +1188,257 @@ static const struct ng_parse_struct_field ng_parse_ng_mesg_type_fields[]
 const struct ng_parse_type ng_parse_ng_mesg_type = {
 	&ng_parse_struct_type,
 	&ng_parse_ng_mesg_type_fields,
+};
+
+/************************************************************************
+			STRUCT SOCKADDR PARSE TYPE
+ ************************************************************************/
+#define SADATA_OFFSET	(__offsetof(struct sockaddr, sa_data))
+
+/* Get the length of the data portion of a generic struct sockaddr */
+static int
+ng_parse_generic_sockdata_getLength(const struct ng_parse_type *type,
+	const u_char *start, const u_char *buf)
+{
+	const struct sockaddr *sa;
+
+	sa = (const struct sockaddr *)(buf - SADATA_OFFSET);
+	return (sa->sa_len < SADATA_OFFSET) ? 0 : sa->sa_len - SADATA_OFFSET;
+}
+
+/* Type for the variable length data portion of a generic struct sockaddr */
+static const struct ng_parse_type ng_parse_generic_sockdata_type = {
+	&ng_parse_bytearray_type,
+	&ng_parse_generic_sockdata_getLength
+};
+
+/* Type for a generic struct sockaddr */
+static const struct ng_parse_struct_field
+    ng_parse_generic_sockaddr_type_fields[] = {
+	{ "len",	&ng_parse_uint8_type			},
+	{ "family",	&ng_parse_uint8_type			},
+	{ "data",	&ng_parse_generic_sockdata_type	},
+	{ NULL }
+};
+
+static const struct ng_parse_type ng_parse_generic_sockaddr_type = {
+	&ng_parse_struct_type,
+	&ng_parse_generic_sockaddr_type_fields
+};
+
+static const struct ng_parse_sockaddr_family_alias {
+	const char	*name;
+	sa_family_t	value;
+} ng_parse_sockaddr_family_aliases[] = {
+	{ "local",	PF_LOCAL	},
+	{ "inet",	PF_INET		},
+#if 0
+	{ "inet6",	PF_INET6	},	/* XXX implement these someday */
+	{ "atalk",	PF_APPLETALK	},
+	{ "atm",	PF_ATM		},
+#endif
+	{ NULL,		-1		},
+};
+
+static inline sa_family_t
+ng_parse_sockaddr_parse_family_alias(const char *s)
+{
+	int k;
+
+	for (k = 0; ng_parse_sockaddr_family_aliases[k].name != NULL; k++) {
+		if (strcmp(s, ng_parse_sockaddr_family_aliases[k].name) == 0)
+			return ng_parse_sockaddr_family_aliases[k].value;
+	}
+
+	return -1;
+
+}
+
+/* Convert a struct sockaddr from ASCII to binary.  If its a protocol
+   family that we specially handle, do that, otherwise defer to the
+   generic parse type ng_parse_generic_sockaddr_type. */
+static int
+ng_parse_sockaddr_parse(const struct ng_parse_type *type,
+	const char *s, int *off, const u_char *const start,
+	u_char *const buf, int *buflen)
+{
+	struct sockaddr *const sa = (struct sockaddr *)buf;
+	enum ng_parse_token tok;
+	char fambuf[32];
+	int family, len;
+	char *t;
+
+	/* If next token is a left curly brace, use generic parse type */
+	if ((tok = ng_parse_get_token(s, off, &len)) == T_LBRACE) {
+		return (*ng_parse_generic_sockaddr_type.supertype->parse)
+		    (&ng_parse_generic_sockaddr_type,
+		    s, off, start, buf, buflen);
+	}
+
+	/* Get socket address family followed by a slash */
+	while (isspace(s[*off]))
+		(*off)++;
+	if ((t = strchr(s + *off, '/')) == NULL)
+		return (EINVAL);
+	if ((len = t - (s + *off)) > sizeof(fambuf) - 1)
+		return (EINVAL);
+	strncpy(fambuf, s + *off, len);
+	fambuf[len] = '\0';
+	*off += len + 1;
+	if ((family = ng_parse_sockaddr_parse_family_alias(fambuf)) == -1)
+		return (EINVAL);
+
+	/* Set family */
+	if (*buflen < SADATA_OFFSET)
+		return (ERANGE);
+	sa->sa_family = family;
+
+	/* Set family-specific data and length */
+	switch (sa->sa_family) {
+	case PF_LOCAL:		/* Get pathname */
+	    {
+		const int pathoff = __offsetof(struct sockaddr_un, sun_path);
+		struct sockaddr_un *const sun = (struct sockaddr_un *)sa;
+		int toklen, pathlen;
+		char *path;
+
+		if ((path = ng_get_string_token(s, off, &toklen, NULL)) == NULL)
+			return (EINVAL);
+		pathlen = strlen(path);
+		if (pathlen > SOCK_MAXADDRLEN) {
+			free(path, M_NETGRAPH_PARSE);
+			return (E2BIG);
+		}
+		if (*buflen < pathoff + pathlen) {
+			free(path, M_NETGRAPH_PARSE);
+			return (ERANGE);
+		}
+		*off += toklen;
+		bcopy(path, sun->sun_path, pathlen);
+		sun->sun_len = pathoff + pathlen;
+		free(path, M_NETGRAPH_PARSE);
+		break;
+	    }
+
+	case PF_INET:		/* Get an IP address with optional port */
+	    {
+		struct sockaddr_in *const sin = (struct sockaddr_in *)sa;
+		int i;
+
+		/* Parse this: <ipaddress>[:port] */
+		for (i = 0; i < 4; i++) {
+			u_long val;
+			char *eptr;
+
+			val = strtoul(s + *off, &eptr, 10);
+			if (val > 0xff || eptr == s + *off)
+				return (EINVAL);
+			*off += (eptr - (s + *off));
+			((u_char *)&sin->sin_addr)[i] = (u_char)val;
+			if (i < 3) {
+				if (s[*off] != '.')
+					return (EINVAL);
+				(*off)++;
+			} else if (s[*off] == ':') {
+				(*off)++;
+				val = strtoul(s + *off, &eptr, 10);
+				if (val > 0xffff || eptr == s + *off)
+					return (EINVAL);
+				*off += (eptr - (s + *off));
+				sin->sin_port = htons(val);
+			} else
+				sin->sin_port = 0;
+		}
+		bzero(&sin->sin_zero, sizeof(sin->sin_zero));
+		sin->sin_len = sizeof(*sin);
+		break;
+	    }
+
+#if 0
+	case PF_APPLETALK:	/* XXX implement these someday */
+	case PF_INET6:
+	case PF_IPX:
+#endif
+
+	default:
+		return (EINVAL);
+	}
+
+	/* Done */
+	*buflen = sa->sa_len;
+	return (0);
+}
+
+/* Convert a struct sockaddr from binary to ASCII */
+static int
+ng_parse_sockaddr_unparse(const struct ng_parse_type *type,
+	const u_char *data, int *off, char *cbuf, int cbuflen)
+{
+	const struct sockaddr *sa = (const struct sockaddr *)(data + *off);
+	int slen = 0;
+
+	/* Output socket address, either in special or generic format */
+	switch (sa->sa_family) {
+	case PF_LOCAL:
+	    {
+		const int pathoff = __offsetof(struct sockaddr_un, sun_path);
+		const struct sockaddr_un *sun = (const struct sockaddr_un *)sa;
+		const int pathlen = sun->sun_len - pathoff;
+		char pathbuf[SOCK_MAXADDRLEN + 1];
+		char *pathtoken;
+
+		bcopy(sun->sun_path, pathbuf, pathlen);
+		if ((pathtoken = ng_encode_string(pathbuf, pathlen)) == NULL)
+			return (ENOMEM);
+		slen += snprintf(cbuf, cbuflen, "local/%s", pathtoken);
+		free(pathtoken, M_NETGRAPH_PARSE);
+		if (slen >= cbuflen)
+			return (ERANGE);
+		*off += sun->sun_len;
+		return (0);
+	    }
+
+	case PF_INET:
+	    {
+		const struct sockaddr_in *sin = (const struct sockaddr_in *)sa;
+
+		slen += snprintf(cbuf, cbuflen, "inet/%d.%d.%d.%d",
+		  ((const u_char *)&sin->sin_addr)[0],
+		  ((const u_char *)&sin->sin_addr)[1],
+		  ((const u_char *)&sin->sin_addr)[2],
+		  ((const u_char *)&sin->sin_addr)[3]);
+		if (sin->sin_port != 0) {
+			slen += snprintf(cbuf + strlen(cbuf),
+			    cbuflen - strlen(cbuf), ":%d",
+			    (u_int)ntohs(sin->sin_port));
+		}
+		if (slen >= cbuflen)
+			return (ERANGE);
+		*off += sizeof(*sin);
+		return(0);
+	    }
+
+#if 0
+	case PF_APPLETALK:	/* XXX implement these someday */
+	case PF_INET6:
+	case PF_IPX:
+#endif
+
+	default:
+		return (*ng_parse_generic_sockaddr_type.supertype->unparse)
+		    (&ng_parse_generic_sockaddr_type,
+		    data, off, cbuf, cbuflen);
+	}
+}
+
+/* Parse type for struct sockaddr */
+const struct ng_parse_type ng_parse_sockaddr_type = {
+	NULL,
+	NULL,
+	NULL,
+	&ng_parse_sockaddr_parse,
+	&ng_parse_sockaddr_unparse,
+	NULL		/* no such thing as a default struct sockaddr */
 };
 
 /************************************************************************
