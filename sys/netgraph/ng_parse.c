@@ -46,6 +46,7 @@
 #include <sys/systm.h>
 #include <sys/kernel.h>
 #include <sys/errno.h>
+#include <sys/kdb.h>
 #include <sys/limits.h>
 #include <sys/malloc.h>
 #include <sys/mbuf.h>
@@ -101,6 +102,11 @@ enum comptype {
 	CT_ARRAY,
 	CT_FIXEDARRAY,
 };
+
+/* Set this to kdb_enter("X") to catch all errors as they occur */
+#ifndef TRAP_ERROR
+#define TRAP_ERROR()
+#endif
 
 /* Composite types helper functions */
 static int	ng_parse_composite(const struct ng_parse_type *type,
@@ -342,8 +348,10 @@ ng_int8_parse(const struct ng_parse_type *type,
 	char *eptr;
 
 	val = strtol(s + *off, &eptr, 0);
-	if (val < (int8_t)0x80 || val > (u_int8_t)0xff || eptr == s + *off)
+	if (val < (int8_t)0x80 || val > (u_int8_t)0xff || eptr == s + *off) {
+		TRAP_ERROR();
 		return (EINVAL);
+	}
 	*off = eptr - s;
 	val8 = (int8_t)val;
 	bcopy(&val8, buf, sizeof(int8_t));
@@ -438,8 +446,10 @@ ng_int16_parse(const struct ng_parse_type *type,
 
 	val = strtol(s + *off, &eptr, 0);
 	if (val < (int16_t)0x8000
-	    || val > (u_int16_t)0xffff || eptr == s + *off)
+	    || val > (u_int16_t)0xffff || eptr == s + *off) {
+		TRAP_ERROR();
 		return (EINVAL);
+	}
 	*off = eptr - s;
 	val16 = (int16_t)val;
 	bcopy(&val16, buf, sizeof(int16_t));
@@ -537,8 +547,10 @@ ng_int32_parse(const struct ng_parse_type *type,
 	else
 		val = strtoul(s + *off, &eptr, 0);
 	if (val < (int32_t)0x80000000
-	    || val > (u_int32_t)0xffffffff || eptr == s + *off)
+	    || val > (u_int32_t)0xffffffff || eptr == s + *off) {
+		TRAP_ERROR();
 		return (EINVAL);
+	}
 	*off = eptr - s;
 	val32 = (int32_t)val;
 	bcopy(&val32, buf, sizeof(int32_t));
@@ -632,8 +644,10 @@ ng_int64_parse(const struct ng_parse_type *type,
 	char *eptr;
 
 	val = strtoq(s + *off, &eptr, 0);
-	if (eptr == s + *off)
+	if (eptr == s + *off) {
+		TRAP_ERROR();
 		return (EINVAL);
+	}
 	*off = eptr - s;
 	val64 = (int64_t)val;
 	bcopy(&val64, buf, sizeof(int64_t));
@@ -726,8 +740,10 @@ ng_string_parse(const struct ng_parse_type *type,
 	int len;
 	int slen;
 
-	if ((sval = ng_get_string_token(s, off, &len, &slen)) == NULL)
+	if ((sval = ng_get_string_token(s, off, &len, &slen)) == NULL) {
+		TRAP_ERROR();
 		return (EINVAL);
+	}
 	*off += len;
 	bcopy(sval, buf, slen + 1);
 	free(sval, M_NETGRAPH_PARSE);
@@ -790,10 +806,13 @@ ng_fixedstring_parse(const struct ng_parse_type *type,
 	int len;
 	int slen;
 
-	if ((sval = ng_get_string_token(s, off, &len, &slen)) == NULL)
+	if ((sval = ng_get_string_token(s, off, &len, &slen)) == NULL) {
+		TRAP_ERROR();
 		return (EINVAL);
+	}
 	if (slen + 1 > fi->bufSize) {
 		free(sval, M_NETGRAPH_PARSE);
+		TRAP_ERROR();
 		return (E2BIG);
 	}
 	*off += len;
@@ -893,10 +912,13 @@ ng_sizedstring_parse(const struct ng_parse_type *type,
 	int len;
 	int slen;
 
-	if ((sval = ng_get_string_token(s, off, &len, &slen)) == NULL)
+	if ((sval = ng_get_string_token(s, off, &len, &slen)) == NULL) {
+		TRAP_ERROR();
 		return (EINVAL);
+	}
 	if (slen > USHRT_MAX) {
 		free(sval, M_NETGRAPH_PARSE);
+		TRAP_ERROR();
 		return (EINVAL);
 	}
 	*off += len;
@@ -963,8 +985,10 @@ ng_ipaddr_parse(const struct ng_parse_type *type,
 		if ((error = ng_int8_parse(&ng_parse_int8_type,
 		    s, off, start, buf + i, buflen)) != 0)
 			return (error);
-		if (i < 3 && s[*off] != '.')
+		if (i < 3 && s[*off] != '.') {
+			TRAP_ERROR();
 			return (EINVAL);
+		}
 		(*off)++;
 	}
 	*buflen = 4;
@@ -1027,13 +1051,17 @@ ng_enaddr_parse(const struct ng_parse_type *type,
 		return (ERANGE);
 	for (i = 0; i < ETHER_ADDR_LEN; i++) {
 		val = strtoul(s + *off, &eptr, 16);
-		if (val > 0xff || eptr == s + *off)
+		if (val > 0xff || eptr == s + *off) {
+			TRAP_ERROR();
 			return (EINVAL);
+		}
 		buf[i] = (u_char)val;
 		*off = (eptr - s);
 		if (i < ETHER_ADDR_LEN - 1) {
-			if (*eptr != ':')
+			if (*eptr != ':') {
+				TRAP_ERROR();
 				return (EINVAL);
+			}
 			(*off)++;
 		}
 	}
@@ -1278,15 +1306,21 @@ ng_parse_sockaddr_parse(const struct ng_parse_type *type,
 	/* Get socket address family followed by a slash */
 	while (isspace(s[*off]))
 		(*off)++;
-	if ((t = strchr(s + *off, '/')) == NULL)
+	if ((t = strchr(s + *off, '/')) == NULL) {
+		TRAP_ERROR();
 		return (EINVAL);
-	if ((len = t - (s + *off)) > sizeof(fambuf) - 1)
+	}
+	if ((len = t - (s + *off)) > sizeof(fambuf) - 1) {
+		TRAP_ERROR();
 		return (EINVAL);
+	}
 	strncpy(fambuf, s + *off, len);
 	fambuf[len] = '\0';
 	*off += len + 1;
-	if ((family = ng_parse_sockaddr_parse_family_alias(fambuf)) == -1)
+	if ((family = ng_parse_sockaddr_parse_family_alias(fambuf)) == -1) {
+		TRAP_ERROR();
 		return (EINVAL);
+	}
 
 	/* Set family */
 	if (*buflen < SADATA_OFFSET)
@@ -1302,8 +1336,10 @@ ng_parse_sockaddr_parse(const struct ng_parse_type *type,
 		int toklen, pathlen;
 		char *path;
 
-		if ((path = ng_get_string_token(s, off, &toklen, NULL)) == NULL)
+		if ((path = ng_get_string_token(s, off, &toklen, NULL)) == NULL) {
+			TRAP_ERROR();
 			return (EINVAL);
+		}
 		pathlen = strlen(path);
 		if (pathlen > SOCK_MAXADDRLEN) {
 			free(path, M_NETGRAPH_PARSE);
@@ -1331,19 +1367,25 @@ ng_parse_sockaddr_parse(const struct ng_parse_type *type,
 			char *eptr;
 
 			val = strtoul(s + *off, &eptr, 10);
-			if (val > 0xff || eptr == s + *off)
+			if (val > 0xff || eptr == s + *off) {
+				TRAP_ERROR();
 				return (EINVAL);
+			}
 			*off += (eptr - (s + *off));
 			((u_char *)&sin->sin_addr)[i] = (u_char)val;
 			if (i < 3) {
-				if (s[*off] != '.')
+				if (s[*off] != '.') {
+					TRAP_ERROR();
 					return (EINVAL);
+				}
 				(*off)++;
 			} else if (s[*off] == ':') {
 				(*off)++;
 				val = strtoul(s + *off, &eptr, 10);
-				if (val > 0xffff || eptr == s + *off)
+				if (val > 0xffff || eptr == s + *off) {
+					TRAP_ERROR();
 					return (EINVAL);
+				}
 				*off += (eptr - (s + *off));
 				sin->sin_port = htons(val);
 			} else
@@ -1361,6 +1403,7 @@ ng_parse_sockaddr_parse(const struct ng_parse_type *type,
 #endif
 
 	default:
+		TRAP_ERROR();
 		return (EINVAL);
 	}
 
@@ -1469,6 +1512,7 @@ ng_parse_composite(const struct ng_parse_type *type, const char *s,
 	/* Get opening brace/bracket */
 	if (ng_parse_get_token(s, off, &len)
 	    != (ctype == CT_STRUCT ? T_LBRACE : T_LBRACKET)) {
+		TRAP_ERROR();
 		error = EINVAL;
 		goto done;
 	}
@@ -1500,6 +1544,7 @@ ng_parse_composite(const struct ng_parse_type *type, const char *s,
 
 			/* Might be an index, might be a value, either way... */
 			if (tok != T_WORD) {
+				TRAP_ERROR();
 				error = EINVAL;
 				goto done;
 			}
@@ -1514,6 +1559,7 @@ ng_parse_composite(const struct ng_parse_type *type, const char *s,
 			/* Index was specified explicitly; parse it */
 			index = (u_int)strtoul(s + *off, &eptr, 0);
 			if (index < 0 || eptr - (s + *off) != len) {
+				TRAP_ERROR();
 				error = EINVAL;
 				goto done;
 			}
@@ -1525,6 +1571,7 @@ ng_parse_composite(const struct ng_parse_type *type, const char *s,
 
 			/* Find the field by name (required) in field list */
 			if (tok != T_WORD) {
+				TRAP_ERROR();
 				error = EINVAL;
 				goto done;
 			}
@@ -1544,6 +1591,7 @@ ng_parse_composite(const struct ng_parse_type *type, const char *s,
 
 			/* Get equals sign */
 			if (ng_parse_get_token(s, off, &len) != T_EQUALS) {
+				TRAP_ERROR();
 				error = EINVAL;
 				goto done;
 			}
@@ -1905,14 +1953,19 @@ ng_parse_skip_value(const char *s, int off0, int *lenp)
 			nbrace++;
 			break;
 		case T_RBRACKET:
-			if (nbracket-- == 0)
+			if (nbracket-- == 0) {
+				TRAP_ERROR();
 				return (EINVAL);
+			}
 			break;
 		case T_RBRACE:
-			if (nbrace-- == 0)
+			if (nbrace-- == 0) {
+				TRAP_ERROR();
 				return (EINVAL);
+			}
 			break;
 		case T_EOF:
+			TRAP_ERROR();
 			return (EINVAL);
 		default:
 			break;
