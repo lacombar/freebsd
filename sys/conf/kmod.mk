@@ -286,7 +286,7 @@ _kmodinstall:
 .if defined(DEBUG_FLAGS) && !defined(INSTALL_NODEBUG) && \
     (defined(MK_KERNEL_SYMBOLS) && ${MK_KERNEL_SYMBOLS} != "no")
 	${INSTALL} -o ${KMODOWN} -g ${KMODGRP} -m ${KMODMODE} \
-	    ${_INSTALLFLAGS} ${PROG}.symbols ${DESTDIR}${KMODDIR}
+	    ${_INSTALLFLAGS} ${PROG}.symbols ${DESTDIR}${KMODDIR_SYMBOLS}
 .endif
 
 .include <bsd.links.mk>
