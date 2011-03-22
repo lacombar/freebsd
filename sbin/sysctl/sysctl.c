@@ -58,6 +58,8 @@ static const char rcsid[] =
 #include <string.h>
 #include <unistd.h>
 
+#include "sysctl.h"
+
 static int	aflag, bflag, dflag, eflag, hflag, iflag;
 static int	Nflag, nflag, oflag, qflag, xflag, warncount;
 
@@ -335,6 +337,52 @@ parse(char *string)
 }
 
 /* These functions will dump out various interesting structures. */
+struct opaque_printer_list
+{
+	const struct opaque_printer *	opl_printer;
+	struct opaque_printer_list *	opl_next;
+};
+
+static struct opaque_printer_list *opaque_printers;
+
+static opaque_printer_cb
+opaque_printer_lookup(const char *fmt)
+{
+	struct opaque_printer_list *opl = opaque_printers;
+	opaque_printer_cb printer = NULL;
+
+	while (opl != NULL) {
+		if (strcmp(fmt, opl->opl_printer->op_format) == 0) {
+			printer = opl->opl_printer->op_cb;
+			break;
+		}
+		opl = opl->opl_next;
+	}
+
+	return printer;
+}
+
+int
+opaque_printer_register(const struct opaque_printer *op)
+{
+	struct opaque_printer_list *opl;
+	int error = 0;
+
+	opl = malloc(sizeof *opl);
+	if (opl == NULL) {
+		error = ENOMEM;
+		goto out;
+	}
+
+	opl->opl_printer = op;
+	opl->opl_next = opaque_printers;
+
+	opaque_printers = opl;
+
+out:
+	return error;
+
+}
 
 static int
 S_clockinfo(int l2, void *p)
@@ -423,6 +471,14 @@ S_vmtotal(int l2, void *p)
 
 	return (0);
 }
+
+static const struct opaque_printer sysctl_opaque_printers[] =
+{
+	{ "S,clockinfo",	S_clockinfo },
+	{ "S,timeval",		S_timeval },
+	{ "S,loadavg",		S_loadavg },
+	{ "S,vmtotal",		S_vmtotal },
+};
 
 static int
 set_IK(const char *str, int *val)
@@ -538,7 +594,7 @@ show_var(int *oid, int nlen)
 	size_t intlen;
 	size_t j, len;
 	u_int kind;
-	int (*func)(int, void *);
+	opaque_printer_cb func;
 
 	/* Silence GCC. */
 	umv = mv = intlen = 0;
@@ -660,16 +716,8 @@ show_var(int *oid, int nlen)
 
 	case CTLTYPE_OPAQUE:
 		i = 0;
-		if (strcmp(fmt, "S,clockinfo") == 0)
-			func = S_clockinfo;
-		else if (strcmp(fmt, "S,timeval") == 0)
-			func = S_timeval;
-		else if (strcmp(fmt, "S,loadavg") == 0)
-			func = S_loadavg;
-		else if (strcmp(fmt, "S,vmtotal") == 0)
-			func = S_vmtotal;
-		else
-			func = NULL;
+
+		func = opaque_printer_lookup(fmt);
 		if (func) {
 			if (!nflag)
 				printf("%s%s", name, sep);
@@ -740,4 +788,15 @@ sysctl_all(int *oid, int len)
 		memcpy(name1+2, name2, l2 * sizeof(int));
 		l1 = 2 + l2;
 	}
+}
+
+static __constructor void
+sysctl_ctor(void)
+{
+#define	N(a)	(sizeof(a) / sizeof(a[0]))
+	size_t i;
+
+	for (i = 0; i < N(sysctl_opaque_printers);  i++)
+		opaque_printer_register(&sysctl_opaque_printers[i]);
+#undef N
 }
