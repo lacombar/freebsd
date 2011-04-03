@@ -51,7 +51,7 @@
 
 static int DotCmd(int ac, char **av);
 
-const struct ngcmd dot_cmd = {
+static const struct ngcmd dot_cmd = {
 	DotCmd,
 	"dot [outputfile]",
 	"Produce a GraphViz (.dot) of the entire netgraph.",
@@ -197,4 +197,11 @@ error:
 	if (f != stdout)
 		(void)fclose(f);
 	return (CMDRTN_ERROR);
+}
+
+static __constructor void
+DotCtor(void)
+{
+
+	RegisterCommand(&dot_cmd);
 }

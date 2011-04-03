@@ -72,7 +72,6 @@ __FBSDID("$FreeBSD$");
 static int	ReadFile(FILE *fp);
 static void	ReadSockets(fd_set *);
 static int	DoParseCommand(const char *line);
-static int	DoCommand(int ac, char **av);
 static int	DoInteractive(void);
 static const	struct ngcmd *FindCommand(const char *string);
 static int	MatchCommand(const struct ngcmd *cmd, const char *s);
@@ -87,26 +86,13 @@ static pthread_cond_t	cond = PTHREAD_COND_INITIALIZER;
 #endif
 
 /* List of commands */
-static const struct ngcmd *const cmds[] = {
-	&config_cmd,
-	&connect_cmd,
-	&debug_cmd,
-	&dot_cmd,
-	&help_cmd,
-	&list_cmd,
-	&mkpeer_cmd,
-	&msg_cmd,
-	&name_cmd,
-	&read_cmd,
-	&rmhook_cmd,
-	&show_cmd,
-	&shutdown_cmd,
-	&status_cmd,
-	&types_cmd,
-	&write_cmd,
-	&quit_cmd,
-	NULL
+struct ngcmd_list
+{
+	const struct ngcmd *	nl_cmd;
+	struct ngcmd_list *	nl_next;
 };
+
+static struct ngcmd_list *cmds = NULL;
 
 /* Commands defined in this file */
 const struct ngcmd read_cmd = {
@@ -440,9 +426,9 @@ DoParseCommand(const char *line)
 }
 
 /*
- * Execute the command
+ * Execute a command
  */
-static int
+int
 DoCommand(int ac, char **av)
 {
 	const struct ngcmd *cmd;
@@ -453,7 +439,7 @@ DoCommand(int ac, char **av)
 	if ((cmd = FindCommand(av[0])) == NULL)
 		return (CMDRTN_ERROR);
 	if ((rtn = (*cmd->func)(ac, av)) == CMDRTN_USAGE)
-		warnx("usage: %s", cmd->cmd);
+		warnx("usage:u %s", cmd->cmd);
 	return (rtn);
 }
 
@@ -463,22 +449,26 @@ DoCommand(int ac, char **av)
 static const struct ngcmd *
 FindCommand(const char *string)
 {
-	int k, found = -1;
+	struct ngcmd_list *nl = cmds;
+	int found = 0;
 
-	for (k = 0; cmds[k] != NULL; k++) {
-		if (MatchCommand(cmds[k], string)) {
-			if (found != -1) {
+	for (nl = cmds; nl != NULL; nl = nl->nl_next) {
+		if (MatchCommand(nl->nl_cmd, string)) {
+			if (found != 0) {
 				warnx("\"%s\": ambiguous command", string);
-				return (NULL);
+				return NULL;
 			}
-			found = k;
+			found = 1;
+			break;
 		}
 	}
-	if (found == -1) {
+
+	if (nl == NULL) {
 		warnx("\"%s\": unknown command", string);
-		return (NULL);
+		return NULL;
 	}
-	return (cmds[found]);
+
+	return nl->nl_cmd;
 }
 
 /*
@@ -505,6 +495,31 @@ MatchCommand(const struct ngcmd *cmd, const char *s)
 
 	/* No match */
 	return (0);
+}
+
+/*
+ * Register a command
+ */
+int
+RegisterCommand(const struct ngcmd *cmd)
+{
+
+	struct ngcmd_list *nl;
+	int error = 0;
+
+	nl = malloc(sizeof *nl);
+	if (nl == NULL) {
+		error = ENOMEM;
+		goto out;
+	}
+
+	nl->nl_cmd = cmd;
+	nl->nl_next = cmds;
+
+	cmds = nl;
+
+out:
+	return error;
 }
 
 /*
@@ -540,18 +555,18 @@ ReadCmd(int ac, char **av)
 static int
 HelpCmd(int ac, char **av)
 {
+	struct ngcmd_list *nl = cmds;
 	const struct ngcmd *cmd;
-	int k;
 
 	switch (ac) {
 	case 0:
 	case 1:
 		/* Show all commands */
 		printf("Available commands:\n");
-		for (k = 0; cmds[k] != NULL; k++) {
+		for (nl = cmds; nl != NULL; nl = nl->nl_next) {
 			char *s, buf[100];
 
-			cmd = cmds[k];
+			cmd = nl->nl_cmd;
 			snprintf(buf, sizeof(buf), "%s", cmd->cmd);
 			for (s = buf; *s != '\0' && !isspace(*s); s++);
 			*s = '\0';
@@ -660,4 +675,16 @@ Usage(const char *msg)
 	fprintf(stderr,
 		"usage: ngctl [-d] [-f file] [-n name] [command ...]\n");
 	exit(EX_USAGE);
+}
+
+/*
+ *
+ */
+static __constructor void
+NgctlCtor(void)
+{
+
+	RegisterCommand(&read_cmd);
+	RegisterCommand(&help_cmd);
+	RegisterCommand(&quit_cmd);
 }

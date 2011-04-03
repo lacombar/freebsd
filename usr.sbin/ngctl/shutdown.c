@@ -76,4 +76,9 @@ ShutdownCmd(int ac, char **av)
 	return (CMDRTN_OK);
 }
 
+static __constructor void
+ShutdownCtor(void)
+{
 
+	RegisterCommand(&shutdown_cmd);
+}

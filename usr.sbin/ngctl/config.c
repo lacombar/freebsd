@@ -49,7 +49,7 @@
 
 static int ConfigCmd(int ac, char **av);
 
-const struct ngcmd config_cmd = {
+static const struct ngcmd config_cmd = {
 	ConfigCmd,
 	"config <path> [arguments]",
 	"get or set configuration of node at <path>",
@@ -109,3 +109,9 @@ ConfigCmd(int ac, char **av)
 	return (CMDRTN_OK);
 }
 
+static __constructor void
+ConfigCtor(void)
+{
+
+	RegisterCommand(&config_cmd);
+}

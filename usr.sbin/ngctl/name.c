@@ -46,7 +46,7 @@
 
 static int NameCmd(int ac, char **av);
 
-const struct ngcmd name_cmd = {
+static const struct ngcmd name_cmd = {
 	NameCmd,
 	"name <path> <name>",
 	"Assign name <name> to the node at <path>",
@@ -79,3 +79,9 @@ NameCmd(int ac, char **av)
 	return (CMDRTN_OK);
 }
 
+static __constructor void
+NameCtor(void)
+{
+
+	RegisterCommand(&name_cmd);
+}

@@ -49,7 +49,7 @@
 
 static int WriteCmd(int ac, char **av);
 
-const struct ngcmd write_cmd = {
+static const struct ngcmd write_cmd = {
 	WriteCmd,
 	"write hook < -f file | byte ... >",
 	"Send a data packet down the hook named by \"hook\".",
@@ -119,3 +119,9 @@ WriteCmd(int ac, char **av)
 	return (CMDRTN_OK);
 }
 
+static __constructor void
+WriteCtor(void)
+{
+
+	RegisterCommand(&write_cmd);
+}

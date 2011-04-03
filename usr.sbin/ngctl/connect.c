@@ -45,7 +45,7 @@
 
 static int ConnectCmd(int ac, char **av);
 
-const struct ngcmd connect_cmd = {
+static const struct ngcmd connect_cmd = {
 	ConnectCmd,
 	"connect [path] <relpath> <hook> <peerhook>",
 	"Connects hook <peerhook> of the node at <relpath> to <hook>",
@@ -88,3 +88,9 @@ ConnectCmd(int ac, char **av)
 	return (CMDRTN_OK);
 }
 
+static __constructor void
+ConnectCtor(void)
+{
+
+	RegisterCommand(&connect_cmd);
+}

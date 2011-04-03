@@ -45,7 +45,7 @@
 
 static int MkPeerCmd(int ac, char **av);
 
-const struct ngcmd mkpeer_cmd = {
+static const struct ngcmd mkpeer_cmd = {
 	MkPeerCmd,
 	"mkpeer [path] <type> <hook> <peerhook>",
 	"Create and connect a new node to the node at \"path\"",
@@ -88,3 +88,9 @@ MkPeerCmd(int ac, char **av)
 	return (CMDRTN_OK);
 }
 
+static __constructor void
+MkPeerCtor(void)
+{
+
+	RegisterCommand(&mkpeer_cmd);
+}

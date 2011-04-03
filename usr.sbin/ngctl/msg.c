@@ -52,7 +52,7 @@ __FBSDID("$FreeBSD$");
 
 static int MsgCmd(int ac, char **av);
 
-const struct ngcmd msg_cmd = {
+static const struct ngcmd msg_cmd = {
 	MsgCmd,
 	"msg path command [args ... ]",
 	"Send a netgraph control message to the node at \"path\"",
@@ -163,3 +163,9 @@ MsgRead(void)
 	free(m2);
 }
 
+static __constructor void
+MsgCtor(void)
+{
+
+	RegisterCommand(&msg_cmd);
+}
