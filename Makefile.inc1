@@ -776,6 +776,10 @@ INSTALLKERNEL= ${_kernel}
 .endif
 .endfor
 
+.if defined(PROFLEVEL) && ${PROFLEVEL} >= 1
+CONFIGARGS+=	-p
+.endif
+
 #
 # buildkernel
 #
