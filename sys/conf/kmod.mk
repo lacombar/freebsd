@@ -182,6 +182,17 @@ ${PROG}.symbols: ${FULLPROG}
 	${OBJCOPY} --only-keep-debug ${FULLPROG} ${.TARGET}
 .endif
 
+.if defined(PROFLEVEL) && ${PROFLEVEL} >= 1
+CFLAGS+=	-DGPROF -falign-functions=16
+.if ${PROFLEVEL} >= 2
+CFLAGS+=	-DGPROF4 -DGUPROF
+PROF=	-pg -mprofiler-epilogue
+.else
+PROF=	-pg
+.endif
+.endif
+CFLAGS+=	${PROF}
+
 .if ${__KLD_SHARED} == yes
 ${FULLPROG}: ${KMOD}.kld
 	${LD} -Bshareable ${LDFLAGS} -o ${.TARGET} ${KMOD}.kld
