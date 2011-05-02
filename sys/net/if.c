@@ -1820,7 +1820,7 @@ link_rtrequest(int cmd, struct rtentry *rt, struct rt_addrinfo *info)
 /*
  * Mark an interface down and notify protocols of
  * the transition.
- * NOTE: must be called at splnet or eqivalent.
+ * NOTE: must be called at splnet or equivalent.
  */
 static void
 if_unroute(struct ifnet *ifp, int flag, int fam)
@@ -1844,7 +1844,7 @@ if_unroute(struct ifnet *ifp, int flag, int fam)
 /*
  * Mark an interface up and notify protocols of
  * the transition.
- * NOTE: must be called at splnet or eqivalent.
+ * NOTE: must be called at splnet or equivalent.
  */
 static void
 if_route(struct ifnet *ifp, int flag, int fam)
@@ -1930,7 +1930,7 @@ do_link_state_change(void *arg, int pending)
 /*
  * Mark an interface down and notify protocols of
  * the transition.
- * NOTE: must be called at splnet or eqivalent.
+ * NOTE: must be called at splnet or equivalent.
  */
 void
 if_down(struct ifnet *ifp)
@@ -1942,7 +1942,7 @@ if_down(struct ifnet *ifp)
 /*
  * Mark an interface up and notify protocols of
  * the transition.
- * NOTE: must be called at splnet or eqivalent.
+ * NOTE: must be called at splnet or equivalent.
  */
 void
 if_up(struct ifnet *ifp)
