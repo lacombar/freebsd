@@ -192,6 +192,8 @@ static struct rwlock	ng_idhash_lock;
 #define	IDHASH_WLOCK()		rw_wlock(&ng_idhash_lock)
 #define	IDHASH_WUNLOCK()	rw_wunlock(&ng_idhash_lock)
 
+static int		queue_edge = 0;
+
 /* Method to find a node.. used twice so do it here */
 #define NG_IDHASH_FN(ID) ((ID) % (V_ng_ID_hmask + 1))
 #define NG_IDHASH_FIND(ID, node)					\
@@ -2260,7 +2262,8 @@ ng_snd_item(item_p item, int flags)
 	 * loops back from outbound to inbound path, or stack usage
 	 * level is dangerous - enqueue message.
 	 */
-	if ((flags & NG_QUEUE) || (hook && (hook->hk_flags & HK_QUEUE))) {
+	if ((flags & NG_QUEUE) || (hook && (hook->hk_flags & HK_QUEUE)) ||
+	    (queue_edge && !(NG_NODE_IS_EDGE(node) || (hook && NG_HOOK_IS_EDGE(hook))))) {
 		queue = 1;
 	} else if (hook && (hook->hk_flags & HK_TO_INBOUND) &&
 	    curthread->td_ng_outbound) {
@@ -2955,6 +2958,9 @@ SYSCTL_INT(_net_graph, OID_AUTO, maxalloc, CTLFLAG_RDTUN, &maxalloc,
 TUNABLE_INT("net.graph.maxdata", &maxdata);
 SYSCTL_INT(_net_graph, OID_AUTO, maxdata, CTLFLAG_RDTUN, &maxdata,
     0, "Maximum number of data queue items to allocate");
+TUNABLE_INT("net.graph.queue_edge", &queue_edge);
+SYSCTL_INT(_net_graph, OID_AUTO, queue_edge, CTLFLAG_RW, &queue_edge,
+    0, "Queue packet from/to edge node");
 
 #ifdef	NETGRAPH_DEBUG
 static TAILQ_HEAD(, ng_item) ng_itemlist = TAILQ_HEAD_INITIALIZER(ng_itemlist);

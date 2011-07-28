@@ -315,6 +315,7 @@ ng_ether_attach(struct ifnet *ifp)
 		NG_NODE_UNREF(node);
 		return;
 	}
+	NG_NODE_SET_EDGE(node);
 	NG_NODE_SET_PRIVATE(node, priv);
 	priv->ifp = ifp;
 	IFP2NG(ifp) = node;
@@ -430,6 +431,7 @@ ng_ether_newhook(node_p node, hook_p hook, const char *name)
 	if (hookptr == &priv->upper)
 		priv->ifp->if_hwassist = 0;
 	NG_HOOK_HI_STACK(hook);
+	NG_HOOK_SET_EDGE(hook);
 	/* OK */
 	*hookptr = hook;
 	return (0);

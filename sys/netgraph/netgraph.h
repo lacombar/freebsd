@@ -133,6 +133,7 @@ struct ng_hook {
 #define HK_DEAD			0x0008	/* This is the dead hook.. don't free */
 #define HK_HI_STACK		0x0010	/* Hook has hi stack usage */
 #define HK_TO_INBOUND		0x0020	/* Hook on ntw. stack inbound path. */
+#define HK_EDGE			0x0040	/* */
 
 /*
  * Public Methods for hook
@@ -146,6 +147,8 @@ void ng_unref_hook(hook_p hook); /* don't move this */
 #define	_NG_HOOK_SET_RCVMSG(hook, val)	do {(hook)->hk_rcvmsg = val;} while (0)
 #define	_NG_HOOK_SET_RCVDATA(hook, val)	do {(hook)->hk_rcvdata = val;} while (0)
 #define	_NG_HOOK_PRIVATE(hook)	((hook)->hk_private)
+#define	_NG_HOOK_SET_EDGE(hook)		do {(hook)->hk_flags |= HK_EDGE;} while (0)
+#define _NG_HOOK_IS_EDGE(hook)		(((hook)->hk_flags & HK_EDGE) != 0)
 #define _NG_HOOK_NOT_VALID(hook)	((hook)->hk_flags & HK_INVALID)
 #define _NG_HOOK_IS_VALID(hook)	(!((hook)->hk_flags & HK_INVALID))
 #define _NG_HOOK_NODE(hook)	((hook)->hk_node) /* only rvalue! */
@@ -176,6 +179,8 @@ static __inline void	_ng_hook_set_rcvmsg(hook_p hook,
 static __inline void	_ng_hook_set_rcvdata(hook_p hook,
 				ng_rcvdata_t *val, char * file, int line);
 static __inline void *	_ng_hook_private(hook_p hook, char * file, int line);
+static __inline void	_ng_hook_set_edge(hook_p hook, char *file, int line);
+static __inline int	_ng_hook_is_edge(hook_p hook, char *file, int line);
 static __inline int	_ng_hook_not_valid(hook_p hook, char * file, int line);
 static __inline int	_ng_hook_is_valid(hook_p hook, char * file, int line);
 static __inline node_p	_ng_hook_node(hook_p hook, char * file, int line);
@@ -224,6 +229,20 @@ _ng_hook_set_private(hook_p hook, void *val, char * file, int line)
 {
 	_chkhook(hook, file, line);
 	_NG_HOOK_SET_PRIVATE(hook, val);
+}
+
+static __inline void
+_ng_hook_set_edge(hook_p hook, char *file, int line)
+{
+	_chkhook(hook, file, line);
+	_NG_HOOK_SET_EDGE(hook);
+}
+
+static __inline int
+_ng_hook_is_edge(hook_p hook, char *file, int line)
+{
+	_chkhook(hook, file, line);
+	return (_NG_HOOK_IS_EDGE(HOOK));
 }
 
 static __inline void
@@ -311,6 +330,8 @@ _ng_hook_hi_stack(hook_p hook, char * file, int line)
 #define	NG_HOOK_SET_RCVMSG(hook, val)	_ng_hook_set_rcvmsg(hook, val, _NN_)
 #define	NG_HOOK_SET_RCVDATA(hook, val)	_ng_hook_set_rcvdata(hook, val, _NN_)
 #define	NG_HOOK_PRIVATE(hook)		_ng_hook_private(hook, _NN_)
+#define	NG_HOOK_SET_EDGE(hook)		_ng_hook_set_edge(hook, _NN_)
+#define	NG_HOOK_IS_EDGE(hook)		_ng_hook_is_edge(hook, _NN_)
 #define NG_HOOK_NOT_VALID(hook)		_ng_hook_not_valid(hook, _NN_)
 #define NG_HOOK_IS_VALID(hook)		_ng_hook_is_valid(hook, _NN_)
 #define NG_HOOK_NODE(hook)		_ng_hook_node(hook, _NN_)
@@ -329,6 +350,8 @@ _ng_hook_hi_stack(hook_p hook, char * file, int line)
 #define	NG_HOOK_SET_RCVMSG(hook, val)	_NG_HOOK_SET_RCVMSG(hook, val)
 #define	NG_HOOK_SET_RCVDATA(hook, val)	_NG_HOOK_SET_RCVDATA(hook, val)
 #define	NG_HOOK_PRIVATE(hook)		_NG_HOOK_PRIVATE(hook)
+#define NG_HOOK_SET_EDGE(hook)		_NG_HOOK_SET_EDGE(hook)
+#define NG_HOOK_IS_EDGE(hook)		_NG_HOOK_IS_EDGE(hook)
 #define NG_HOOK_NOT_VALID(hook)		_NG_HOOK_NOT_VALID(hook)
 #define NG_HOOK_IS_VALID(hook)		_NG_HOOK_IS_VALID(hook)
 #define NG_HOOK_NODE(hook)		_NG_HOOK_NODE(hook)
@@ -389,6 +412,7 @@ struct ng_node {
 #define NGF_REALLY_DIE	0x00000010	/* "persistent" node is unloading */
 #define NG_REALLY_DIE	NGF_REALLY_DIE	/* compat for old code */
 #define NGF_HI_STACK	0x00000020	/* node has hi stack usage */
+#define NGF_EDGE	0x08000000	/* node is edge node */
 #define NGF_TYPE1	0x10000000	/* reserved for type specific storage */
 #define NGF_TYPE2	0x20000000	/* reserved for type specific storage */
 #define NGF_TYPE3	0x40000000	/* reserved for type specific storage */
@@ -406,6 +430,8 @@ void	ng_unref_node(node_p node); /* don't move this */
 #define	_NG_NODE_UNREF(node)	ng_unref_node(node)
 #define	_NG_NODE_SET_PRIVATE(node, val)	do {(node)->nd_private = val;} while (0)
 #define	_NG_NODE_PRIVATE(node)	((node)->nd_private)
+#define	_NG_NODE_SET_EDGE(node)	do {(node)->nd_flags |= NGF_EDGE;} while (0)
+#define _NG_NODE_IS_EDGE(node)	(((node)->nd_flags & NGF_EDGE) != 0)
 #define _NG_NODE_IS_VALID(node)	(!((node)->nd_flags & NGF_INVALID))
 #define _NG_NODE_NOT_VALID(node)	((node)->nd_flags & NGF_INVALID)
 #define _NG_NODE_NUMHOOKS(node)	((node)->nd_numhooks + 0) /* rvalue */
@@ -447,6 +473,8 @@ static __inline void _ng_node_unref(node_p node, char *file, int line);
 static __inline void _ng_node_set_private(node_p node, void * val,
 							char *file, int line);
 static __inline void * _ng_node_private(node_p node, char *file, int line);
+static __inline void _ng_node_set_edge(node_p node, char *file, int line);
+static __inline int _ng_node_is_edge(node_p node, char *file, int line);
 static __inline int _ng_node_is_valid(node_p node, char *file, int line);
 static __inline int _ng_node_not_valid(node_p node, char *file, int line);
 static __inline int _ng_node_numhooks(node_p node, char *file, int line);
@@ -515,6 +543,20 @@ _ng_node_private(node_p node, char *file, int line)
 	return (_NG_NODE_PRIVATE(node));
 }
 
+static __inline void
+_ng_node_set_edge(node_p node, char *file, int line)
+{
+	_chknode(node, file, line);
+	_NG_NODE_SET_EDGE(node);
+}
+
+static __inline int
+_ng_node_is_edge(node_p node, char *file, int line)
+{
+	_chknode(node, file, line);
+	return (_NG_NODE_IS_EDGE(node));
+}
+
 static __inline int
 _ng_node_is_valid(node_p node, char *file, int line)
 {
@@ -581,6 +623,8 @@ _ng_node_foreach_hook(node_p node, ng_fn_eachhook *fn, void *arg,
 #define	NG_NODE_UNREF(node)		_ng_node_unref(node, _NN_)
 #define	NG_NODE_SET_PRIVATE(node, val)	_ng_node_set_private(node, val, _NN_)
 #define	NG_NODE_PRIVATE(node)		_ng_node_private(node, _NN_)
+#define	NG_NODE_SET_EDGE(node)		_ng_node_set_edge(node, _NN_)
+#define	NG_NODE_IS_EDGE(node)		_ng_node_is_edge(node, _NN_)
 #define NG_NODE_IS_VALID(node)		_ng_node_is_valid(node, _NN_)
 #define NG_NODE_NOT_VALID(node)		_ng_node_not_valid(node, _NN_)
 #define NG_NODE_FORCE_WRITER(node) 	_ng_node_force_writer(node, _NN_)
@@ -602,6 +646,8 @@ _ng_node_foreach_hook(node_p node, ng_fn_eachhook *fn, void *arg,
 #define	NG_NODE_UNREF(node)		_NG_NODE_UNREF(node)	
 #define	NG_NODE_SET_PRIVATE(node, val)	_NG_NODE_SET_PRIVATE(node, val)	
 #define	NG_NODE_PRIVATE(node)		_NG_NODE_PRIVATE(node)	
+#define NG_NODE_SET_EDGE(node)		_NG_NODE_SET_EDGE(node)
+#define NG_NODE_IS_EDGE(node)		_NG_NODE_IS_EDGE(node)
 #define NG_NODE_IS_VALID(node)		_NG_NODE_IS_VALID(node)	
 #define NG_NODE_NOT_VALID(node)		_NG_NODE_NOT_VALID(node)	
 #define NG_NODE_FORCE_WRITER(node) 	_NG_NODE_FORCE_WRITER(node)
