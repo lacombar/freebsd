@@ -62,6 +62,7 @@
 #include <sys/sysctl.h>
 #include <sys/syslog.h>
 #include <sys/unistd.h>
+#include <sys/sched.h>
 #include <machine/cpu.h>
 
 #include <net/netisr.h>
@@ -2948,6 +2949,7 @@ uma_zone_t			ng_qdzone;
 static int			numthreads = 0; /* number of queue threads */
 static int			maxalloc = 4096;/* limit the damage of a leak */
 static int			maxdata = 512;	/* limit the damage of a DoS */
+static int			bind_thread = 0;
 
 TUNABLE_INT("net.graph.threads", &numthreads);
 SYSCTL_INT(_net_graph, OID_AUTO, threads, CTLFLAG_RDTUN, &numthreads,
@@ -2961,6 +2963,9 @@ SYSCTL_INT(_net_graph, OID_AUTO, maxdata, CTLFLAG_RDTUN, &maxdata,
 TUNABLE_INT("net.graph.queue_edge", &queue_edge);
 SYSCTL_INT(_net_graph, OID_AUTO, queue_edge, CTLFLAG_RW, &queue_edge,
     0, "Queue packet from/to edge node");
+TUNABLE_INT("net.graph.bind_thread", &bind_thread);
+SYSCTL_INT(_net_graph, OID_AUTO, bind_thread, CTLFLAG_RDTUN, &bind_thread,
+    0, "Bind thread to CPU");
 
 #ifdef	NETGRAPH_DEBUG
 static TAILQ_HEAD(, ng_item) ng_itemlist = TAILQ_HEAD_INITIALIZER(ng_itemlist);
@@ -3225,8 +3230,8 @@ ngb_mod_event(module_t mod, int event, void *data)
 		/* Create threads. */
     		p = NULL; /* start with no process */
 		for (i = 0; i < numthreads; i++) {
-			if (kproc_kthread_add(ngthread, NULL, &p, &td,
-			    RFHIGHPID, 0, "ng_queue", "ng_queue%d", i)) {
+			if (kproc_kthread_add(ngthread, (void *)(intptr_t)(i % mp_ncpus),
+			    &p, &td, RFHIGHPID, 0, "ng_queue", "ng_queue%d", i)) {
 				numthreads = i;
 				break;
 			}
@@ -3397,6 +3402,13 @@ SYSCTL_PROC(_debug, OID_AUTO, ng_dump_items, CTLTYPE_INT | CTLFLAG_RW,
 static void
 ngthread(void *arg)
 {
+
+	if (bind_thread) {
+		thread_lock(curthread);
+		sched_bind(curthread, (intptr_t)arg);
+		thread_unlock(curthread);
+	}
+
 	for (;;) {
 		node_p  node;
 
