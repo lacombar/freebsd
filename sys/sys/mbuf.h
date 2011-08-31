@@ -407,6 +407,7 @@ static __inline struct mbuf	*m_getclr(int how, short type);	/* XXX */
 static __inline int		 m_init(struct mbuf *m, uma_zone_t zone,
 				    int size, int how, short type, int flags);
 static __inline struct mbuf	*m_free(struct mbuf *m);
+static __inline void		m_freem(struct mbuf *m);
 static __inline void		 m_clget(struct mbuf *m, int how);
 static __inline void		*m_cljget(struct mbuf *m, int how, int size);
 static __inline void		 m_chtype(struct mbuf *m, short new_type);
@@ -644,6 +645,18 @@ m_free(struct mbuf *m)
 	else if ((m->m_flags & M_NOFREE) == 0)
 		uma_zfree(zone_mbuf, m);
 	return (n);
+}
+
+/*
+ * Free an entire chain of mbufs and associated external buffers, if
+ * applicable.
+ */
+static __inline void
+m_freem(struct mbuf *m)
+{
+
+	while (m != NULL)
+		m = m_free(m);
 }
 
 static __inline void
@@ -903,7 +916,6 @@ struct mbuf	*m_dup(struct mbuf *, int);
 int		 m_dup_pkthdr(struct mbuf *, struct mbuf *, int);
 u_int		 m_fixhdr(struct mbuf *);
 struct mbuf	*m_fragment(struct mbuf *, int, int);
-void		 m_freem(struct mbuf *);
 struct mbuf	*m_getm2(struct mbuf *, int, int, short, int);
 struct mbuf	*m_getptr(struct mbuf *, int, int *);
 u_int		 m_length(struct mbuf *, struct mbuf **);

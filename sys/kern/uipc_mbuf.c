@@ -149,18 +149,6 @@ m_getm2(struct mbuf *m, int len, int how, short type, int flags)
 	return (m);
 }
 
-/*
- * Free an entire chain of mbufs and associated external buffers, if
- * applicable.
- */
-void
-m_freem(struct mbuf *mb)
-{
-
-	while (mb != NULL)
-		mb = m_free(mb);
-}
-
 /*-
  * Configure a provided mbuf to refer to the provided external storage
  * buffer and setup a reference count for said buffer.  If the setting
