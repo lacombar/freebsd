@@ -196,7 +196,7 @@ m_extadd(struct mbuf *mb, caddr_t buf, u_int size,
  * storage attached to them if the reference count hits 1.
  */
 void
-mb_free_ext(struct mbuf *m)
+mb_free_ext(struct mbuf *m, void *arg)
 {
 	int skipmbuf;
 	
@@ -264,7 +264,7 @@ mb_free_ext(struct mbuf *m)
 	m->m_ext.ext_size = 0;
 	m->m_ext.ext_type = 0;
 	m->m_flags &= ~M_EXT;
-	uma_zfree(zone_mbuf, m);
+	uma_zfree_arg(zone_mbuf, m, arg);
 }
 
 /*

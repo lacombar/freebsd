@@ -411,7 +411,7 @@ static __inline void		m_freem(struct mbuf *m);
 static __inline void		 m_clget(struct mbuf *m, int how);
 static __inline void		*m_cljget(struct mbuf *m, int how, int size);
 static __inline void		 m_chtype(struct mbuf *m, short new_type);
-void				 mb_free_ext(struct mbuf *);
+void				 mb_free_ext(struct mbuf *, void *);
 static __inline struct mbuf	*m_last(struct mbuf *m);
 int				 m_pkthdr_init(struct mbuf *m, int how);
 
@@ -630,22 +630,38 @@ m_free_fast(struct mbuf *m)
 #ifdef INVARIANTS
 	if (m->m_flags & M_PKTHDR)
 		KASSERT(SLIST_EMPTY(&m->m_pkthdr.tags), ("doing fast free of mbuf with tags"));
-#endif
-	
+
+	uma_zfree_arg(zone_mbuf, m, (void *)(0xf00f0000 | MB_NOTAGS));
+#else
 	uma_zfree_arg(zone_mbuf, m, (void *)MB_NOTAGS);
+#endif
+}
+
+static __inline struct mbuf *
+m_free_arg(struct mbuf *m, void *arg)
+{
+	struct mbuf *n = m->m_next;
+
+	if (m->m_flags & M_EXT)
+		mb_free_ext(m, arg);
+	else if ((m->m_flags & M_NOFREE) == 0)
+		uma_zfree_arg(zone_mbuf, m, arg);
+
+	return (n);
 }
 
 static __inline struct mbuf *
 m_free(struct mbuf *m)
 {
-	struct mbuf *n = m->m_next;
 
-	if (m->m_flags & M_EXT)
-		mb_free_ext(m);
-	else if ((m->m_flags & M_NOFREE) == 0)
-		uma_zfree(zone_mbuf, m);
-	return (n);
+	return m_free_arg(m, 0);
 }
+
+#ifdef INVARIANTS
+#define _THIS_IP_  ({ __label__ __here; __here: (unsigned long)&&__here; })
+#else
+#define _THIS_IP_ 0
+#endif
 
 /*
  * Free an entire chain of mbufs and associated external buffers, if
@@ -654,9 +670,18 @@ m_free(struct mbuf *m)
 static __inline void
 m_freem(struct mbuf *m)
 {
+	unsigned long this_ip = (_THIS_IP_ & 0x00ffff00) | (_THIS_IP_ & 0xff) << 24;
 
 	while (m != NULL)
-		m = m_free(m);
+		m = m_free_arg(m, (void *)this_ip);
+}
+
+static __inline void
+m_freem_arg(struct mbuf *m, void *arg)
+{
+
+	while (m != NULL)
+		m = m_free_arg(m, arg);
 }
 
 static __inline void
