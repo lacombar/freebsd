@@ -78,9 +78,9 @@ struct mb_args {
 #endif /* _KERNEL */
 
 #if defined(__LP64__)
-#define M_HDR_PAD    6
+#define M_HDR_PAD    4
 #else
-#define M_HDR_PAD    2
+#define M_HDR_PAD    0
 #endif
 
 /*
@@ -93,6 +93,7 @@ struct m_hdr {
 	int		 mh_len;	/* amount of data in this mbuf */
 	int		 mh_flags;	/* flags; see below */
 	short		 mh_type;	/* type of data in this mbuf */
+	uint16_t	 mh_taint;	/* */
 	uint8_t          pad[M_HDR_PAD];/* word align                  */
 };
 
@@ -167,6 +168,7 @@ struct mbuf {
 #define	m_data		m_hdr.mh_data
 #define	m_type		m_hdr.mh_type
 #define	m_flags		m_hdr.mh_flags
+#define	m_taint		m_hdr.mh_taint
 #define	m_nextpkt	m_hdr.mh_nextpkt
 #define	m_act		m_nextpkt
 #define	m_pkthdr	M_dat.MH.MH_pkthdr
@@ -787,6 +789,28 @@ m_addr_changed(struct mbuf *m)
 	if (m_addr_chg_pf_p)
 		m_addr_chg_pf_p(m);
 }
+
+/*
+ * Tainting ...
+ */
+#define M_TAINT		0xffff
+
+static inline void
+m_fill_taint(struct mbuf *m)
+{
+	m->m_taint |= M_TAINT;
+}
+
+static inline void
+m_check_taint(struct mbuf *m)
+{
+	KASSERT((m->m_taint & M_TAINT) == M_TAINT,
+	    ("Corrupted mbuf tainting, expected 0x%.4x, got 0x%.4x, taint 0x%.4x",
+		M_TAINT,  m->m_taint & M_TAINT, m->m_taint));
+
+	m->m_taint &= (uint16_t)~M_TAINT;
+}
+
 
 /*
  * mbuf, cluster, and external object allocation macros (for compatibility
