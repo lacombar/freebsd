@@ -501,6 +501,47 @@ int	resource_disabled(const char *, int);
 int	resource_find_match(int *, const char **, int *, const char *, const char *);
 int	resource_find_dev(int *, const char *, int *, const char *, const char *);
 
+static __inline int	device_resource_int_value(device_t, const char *, int *);
+static __inline int	device_resource_long_value(device_t, const char *, long *);
+static __inline int	device_resource_string_value(device_t, const char *, const char **);
+static __inline int	device_resource_disabled(device_t);
+
+static __inline int
+device_resource_int_value(device_t dev, const char *resname, int *result)
+{
+	const char *name = device_get_name(dev);
+	int unit = device_get_unit(dev);
+
+	return resource_int_value(name, unit, resname, result);
+}
+
+static __inline int
+device_resource_long_value(device_t dev, const char *resname, long *result)
+{
+	const char *name = device_get_name(dev);
+	int unit = device_get_unit(dev);
+
+	return resource_long_value(name, unit, resname, result);
+}
+
+static __inline int
+device_resource_string_value(device_t dev, const char *resname, const char **result)
+{
+	const char *name = device_get_name(dev);
+	int unit = device_get_unit(dev);
+
+	return resource_string_value(name, unit, resname, result);
+}
+
+static __inline int
+device_resource_disabled(device_t dev)
+{
+	const char *name = device_get_name(dev);
+	int unit = device_get_unit(dev);
+
+	return resource_disabled(name, unit);
+}
+
 /*
  * Functions for maintaining and checking consistency of
  * bus information exported to userspace.
