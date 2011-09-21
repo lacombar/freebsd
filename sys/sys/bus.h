@@ -542,6 +542,51 @@ device_resource_disabled(device_t dev)
 	return resource_disabled(name, unit);
 }
 
+#if 0
+#define RESOURCE_INT		0
+#define RESOURCE_LONG		1
+#define RESOURCE_STRING		2
+
+struct dev_resource
+{
+	int		dr_type;
+	const char *	dr_resname;
+	void *		dr_result;
+};
+
+/* XXX al - this should not be inlined... */
+static __inlne int
+device_resource_load(device_t dev, struct dev_resource resources[], size_t count)
+{
+	int i, ret = 0;
+
+	for (i = 0; i < count; i++) {
+		struct dev_resource *dr = &resources[i];
+
+		switch (dr->dr_type) {
+		case RESOURCE_INT:
+			ret = device_resource_int_value(dev, dr->dr_resname,
+			    dr->dr_result);
+			break;
+		case RESOURCE_LONG:
+			ret = device_resource_long_value(dev, dr->dr_resname,
+			    dr->dr_result);
+			break;
+		case RESOURCE_STRING:
+			ret = device_resource_string_value(dev, dr->dr_resname,
+			    dr->dr_result);
+			break;
+		default:
+			continue;
+		}
+		if (ret != 0 && ret != ENOENT)
+			break;
+	}
+
+	return ret;
+}
+#endif
+
 /*
  * Functions for maintaining and checking consistency of
  * bus information exported to userspace.
