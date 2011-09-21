@@ -505,12 +505,6 @@ int	resource_find_match(int *anchor, const char **name, int *unit,
 			    const char *resname, const char *value);
 int	resource_find_dev(int *anchor, const char *name, int *unit,
 			  const char *resname, const char *value);
-int	resource_set_int(const char *name, int unit, const char *resname,
-			 int value);
-int	resource_set_long(const char *name, int unit, const char *resname,
-			  long value);
-int	resource_set_string(const char *name, int unit, const char *resname,
-			    const char *value);
 /*
  * Functions for maintaining and checking consistency of
  * bus information exported to userspace.
