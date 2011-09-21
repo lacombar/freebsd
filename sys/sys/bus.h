@@ -494,17 +494,13 @@ struct sysctl_oid *devclass_get_sysctl_tree(devclass_t dc);
  * Access functions for device resources.
  */
 
-int	resource_int_value(const char *name, int unit, const char *resname,
-			   int *result);
-int	resource_long_value(const char *name, int unit, const char *resname,
-			    long *result);
-int	resource_string_value(const char *name, int unit, const char *resname,
-			      const char **result);
-int	resource_disabled(const char *name, int unit);
-int	resource_find_match(int *anchor, const char **name, int *unit,
-			    const char *resname, const char *value);
-int	resource_find_dev(int *anchor, const char *name, int *unit,
-			  const char *resname, const char *value);
+int	resource_int_value(const char *, int, const char *, int *);
+int	resource_long_value(const char *, int, const char *, long *);
+int	resource_string_value(const char *, int, const char *, const char **);
+int	resource_disabled(const char *, int);
+int	resource_find_match(int *, const char **, int *, const char *, const char *);
+int	resource_find_dev(int *, const char *, int *, const char *, const char *);
+
 /*
  * Functions for maintaining and checking consistency of
  * bus information exported to userspace.
