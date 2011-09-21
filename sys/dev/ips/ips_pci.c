@@ -63,11 +63,6 @@ static int ips_pci_attach(device_t dev)
         ips_softc_t *sc;
 
 
-	if (resource_disabled(device_get_name(dev), device_get_unit(dev))) {
-		device_printf(dev, "device is disabled\n");
-		/* but return 0 so the !$)$)*!$*) unit isn't reused */
-		return (0);
-	}
         DEVICE_PRINTF(1, dev, "in attach.\n");
         sc = (ips_softc_t *)device_get_softc(dev);
         if(!sc){

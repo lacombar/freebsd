@@ -82,9 +82,6 @@ static int
 pxa_smi_probe(device_t dev)
 {
 
-	if (resource_disabled("smi", device_get_unit(dev)))
-		return (ENXIO);
-
 	device_set_desc(dev, "Static Memory Interface");
 	return (0);
 }
@@ -350,7 +347,4 @@ pxa_smi_add_device(device_t dev, const char *name, int unit)
 	if (start > -1)
 		resource_list_add(&ivars->smid_resources, SYS_RES_IRQ, 0, start,
 		     start, 1);
-
-	if (resource_disabled(name, unit))
-		device_disable(child);
 }

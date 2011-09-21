@@ -135,9 +135,6 @@ ichss_identify(driver_t *driver, device_t parent)
 	device_t child;
 	uint32_t pmbase;
 
-	if (resource_disabled("ichss", 0))
-		return;
-
 	/*
 	 * It appears that ICH SpeedStep only requires a single CPU to
 	 * set the value (since the chipset is shared by all CPUs.)

@@ -111,8 +111,6 @@ dfs_identify(driver_t *driver, device_t parent)
 static int
 dfs_probe(device_t dev)
 {
-	if (resource_disabled("dfs", 0))
-		return (ENXIO);
 
 	device_set_desc(dev, "Dynamic Frequency Switching");
 	return (0);

@@ -235,9 +235,6 @@ zbbus_hinted_child(device_t bus, const char *dname, int dunit)
 	long maddr, msize;
 	int err, irq;
 
-	if (resource_disabled(dname, dunit))
-		return;
-
 	child = BUS_ADD_CHILD(bus, 0, dname, dunit);
 	if (child == NULL) {
 		panic("zbbus: could not add child %s unit %d\n", dname, dunit);

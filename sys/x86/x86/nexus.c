@@ -659,8 +659,6 @@ static void
 ram_identify(driver_t *driver, device_t parent)
 {
 
-	if (resource_disabled("ram", 0))
-		return;	
 	if (BUS_ADD_CHILD(parent, 0, "ram", 0) == NULL)
 		panic("ram_identify");
 }

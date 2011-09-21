@@ -1811,6 +1811,13 @@ device_add_child_ordered(device_t dev, u_int order, const char *name, int unit)
 	PDEBUG(("%s at %s with order %u as unit %d",
 	    name, DEVICENAME(dev), order, unit));
 
+	if ((name != NULL && unit != -1) && resource_disabled(name, unit)) {
+		if (bootverbose && device_get_name(dev) != NULL)
+			printf("%s%d: not added (disabled)\n", name, unit);
+
+		return NULL;
+	}
+
 	child = make_device(dev, name, unit);
 	if (child == NULL)
 		return (child);
