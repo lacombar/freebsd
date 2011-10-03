@@ -107,6 +107,7 @@ SYSCTL_INT(_debug, OID_AUTO, boothowto, CTLFLAG_RD, &boothowto, 0,
 int	bootverbose;
 SYSCTL_INT(_debug, OID_AUTO, bootverbose, CTLFLAG_RW, &bootverbose, 0,
 	"Control the output of verbose kernel messages");
+TUNABLE_INT("debug.bootverbose", &bootverbose);
 
 /*
  * This ensures that there is at least one entry so that the sysinit_set
