@@ -2056,6 +2056,16 @@ retry:
 	if (tso_desc) /* TSO used an extra for sentinel */
 		txr->tx_avail -= txd_used;
 
+	if (m_head->m_flags & M_VLANTAG) {
+		/* Set the vlan id. */
+		ctxd->upper.fields.special =
+		    htole16(m_head->m_pkthdr.ether_vtag);
+                /* Tell hardware to add tag */
+                ctxd->lower.data |= htole32(E1000_TXD_CMD_VLE);
+        }
+
+	m_fill_taint(m_head);
+
         tx_buffer->m_head = m_head;
 	/*
 	** Here we swap the map so the last descriptor,
@@ -3840,6 +3850,7 @@ em_txeof(struct tx_ring *txr)
 				    BUS_DMASYNC_POSTWRITE);
 				bus_dmamap_unload(txr->txtag,
 				    tx_buffer->map);
+				m_check_taint(tx_buffer->m_head);
 				m_freem_arg(tx_buffer->m_head, (void *)0xaabbcc00);
                         	tx_buffer->m_head = NULL;
                 	}
