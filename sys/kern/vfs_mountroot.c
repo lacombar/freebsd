@@ -481,14 +481,14 @@ parse_dir_ask(char **conf)
 	printf("\n");
 	printf("  ?               List valid disk boot devices\n");
 	printf("  .               Yield 1 second (for background tasks)\n");
-	printf("  <empty line>    Abort manual input\n");
+	printf("  x               Abort manual input)\n");
 
 	do {
 		error = EINVAL;
 		printf("\nmountroot> ");
 		cngets(name, sizeof(name), GETS_ECHO);
 		if (name[0] == '\0')
-			break;
+			continue;
 		if (name[0] == '?' && name[1] == '\0') {
 			printf("\nList of GEOM managed disk devices:\n  ");
 			g_dev_print();
@@ -498,6 +498,8 @@ parse_dir_ask(char **conf)
 			pause("rmask", hz);
 			continue;
 		}
+		if (name[0] == 'x' && name[1] == '\0')
+			break;
 		mnt = name;
 		error = parse_mount(&mnt);
 		if (error == -1)
