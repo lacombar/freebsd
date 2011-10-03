@@ -3834,7 +3834,7 @@ igb_txeof(struct tx_ring *txr)
 				bus_dmamap_unload(txr->txtag,
 				    tx_buffer->map);
 
-                        	m_freem(tx_buffer->m_head);
+				m_freem_arg(tx_buffer->m_head, (void *)0xaabbcc00);
                         	tx_buffer->m_head = NULL;
                 	}
 			tx_buffer->next_eop = -1;
