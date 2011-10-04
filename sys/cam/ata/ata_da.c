@@ -130,6 +130,7 @@ struct ada_softc {
 	ada_state state;
 	ada_flags flags;	
 	ada_quirks quirks;
+	int	 dma;
 	int	 ordered_tag_count;
 	int	 outstanding_cmds;
 	int	 trim_max_ranges;
@@ -299,6 +300,10 @@ static void		adashutdown(void *arg, int howto);
 static void		adasuspend(void *arg);
 static void		adaresume(void *arg);
 
+#ifndef ADA_DEFAULT_DMA
+#define ADA_DEFAULT_DMA 1
+#endif
+
 #ifndef	ADA_DEFAULT_LEGACY_ALIASES
 #ifdef ATA_CAM
 #define	ADA_DEFAULT_LEGACY_ALIASES	1
@@ -335,6 +340,8 @@ static void		adaresume(void *arg);
 #define	ADA_DEFAULT_WRITE_CACHE	1
 #endif
 
+#define	ADA_DMA	(softc->dma >= 0 ? \
+		 softc->dma : ada_dma)
 #define	ADA_RA	(softc->read_ahead >= 0 ? \
 		 softc->read_ahead : ada_read_ahead)
 #define	ADA_WC	(softc->write_cache >= 0 ? \
@@ -348,6 +355,7 @@ static void		adaresume(void *arg);
 #define	ata_disk_firmware_geom_adjust(disk)
 #endif
 
+static int ada_dma = ADA_DEFAULT_DMA;
 static int ada_legacy_aliases = ADA_DEFAULT_LEGACY_ALIASES;
 static int ada_retry_count = ADA_DEFAULT_RETRY;
 static int ada_default_timeout = ADA_DEFAULT_TIMEOUT;
@@ -359,6 +367,9 @@ static int ada_write_cache = ADA_DEFAULT_WRITE_CACHE;
 
 static SYSCTL_NODE(_kern_cam, OID_AUTO, ada, CTLFLAG_RD, 0,
             "CAM Direct Access Disk driver");
+SYSCTL_INT(_kern_cam_ada, OID_AUTO, dma, CTLFLAG_RW,
+           &ada_dma, 0, "Enable disk DMA");
+TUNABLE_INT("kern.cam.ada.dma", &ada_dma);
 SYSCTL_INT(_kern_cam_ada, OID_AUTO, legacy_aliases, CTLFLAG_RW,
            &ada_legacy_aliases, 0, "Create legacy-like device aliases");
 TUNABLE_INT("kern.cam.ada.legacy_aliases", &ada_legacy_aliases);
@@ -606,7 +617,7 @@ adadump(void *arg, void *virtual, vm_offset_t physical, off_t offset, size_t len
 		    (u_int8_t *) virtual,
 		    length,
 		    ada_default_timeout*1000);
-		if (softc->flags & ADA_FLAG_CAN_DMA) {
+		if (ADA_DMA > 0 && (softc->flags & ADA_FLAG_CAN_DMA)) {
 			if ((softc->flags & ADA_FLAG_CAN_48BIT) &&
 			    (lba + count >= ATA_MAX_28BIT_LBA ||
 			    count >= 256)) {
@@ -849,6 +860,9 @@ adasysctlinit(void *context, int pending)
 		return;
 	}
 
+	SYSCTL_ADD_INT(&softc->sysctl_ctx, SYSCTL_CHILDREN(softc->sysctl_tree),
+		OID_AUTO, "dma", CTLFLAG_RW | CTLFLAG_MPSAFE,
+		&softc->dma, 0, "Enable disk DMA.");
 	SYSCTL_ADD_INT(&softc->sysctl_ctx, SYSCTL_CHILDREN(softc->sysctl_tree),
 		OID_AUTO, "read_ahead", CTLFLAG_RW | CTLFLAG_MPSAFE,
 		&softc->read_ahead, 0, "Enable disk read ahead.");
@@ -1307,7 +1321,7 @@ adastart(struct cam_periph *periph, union ccb *start_ccb)
 			} else if ((softc->flags & ADA_FLAG_CAN_48BIT) &&
 			    (lba + count >= ATA_MAX_28BIT_LBA ||
 			    count > 256)) {
-				if (softc->flags & ADA_FLAG_CAN_DMA) {
+				if (ADA_DMA > 0 && (softc->flags & ADA_FLAG_CAN_DMA)) {
 					if (bp->bio_cmd == BIO_READ) {
 						ata_48bit_cmd(ataio, ATA_READ_DMA48,
 						    0, lba, count);
@@ -1327,7 +1341,7 @@ adastart(struct cam_periph *periph, union ccb *start_ccb)
 			} else {
 				if (count == 256)
 					count = 0;
-				if (softc->flags & ADA_FLAG_CAN_DMA) {
+				if (ADA_DMA > 0 && (softc->flags & ADA_FLAG_CAN_DMA)) {
 					if (bp->bio_cmd == BIO_READ) {
 						ata_28bit_cmd(ataio, ATA_READ_DMA,
 						    0, lba, count);
