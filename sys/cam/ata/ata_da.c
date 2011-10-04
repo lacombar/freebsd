@@ -606,14 +606,26 @@ adadump(void *arg, void *virtual, vm_offset_t physical, off_t offset, size_t len
 		    (u_int8_t *) virtual,
 		    length,
 		    ada_default_timeout*1000);
-		if ((softc->flags & ADA_FLAG_CAN_48BIT) &&
-		    (lba + count >= ATA_MAX_28BIT_LBA ||
-		    count >= 256)) {
-			ata_48bit_cmd(&ccb.ataio, ATA_WRITE_DMA48,
-			    0, lba, count);
+		if (softc->flags & ADA_FLAG_CAN_DMA) {
+			if ((softc->flags & ADA_FLAG_CAN_48BIT) &&
+			    (lba + count >= ATA_MAX_28BIT_LBA ||
+			    count >= 256)) {
+				ata_48bit_cmd(&ccb.ataio, ATA_WRITE_DMA48,
+				    0, lba, count);
+			} else {
+				ata_28bit_cmd(&ccb.ataio, ATA_WRITE_DMA,
+				    0, lba, count);
+			}
 		} else {
-			ata_28bit_cmd(&ccb.ataio, ATA_WRITE_DMA,
-			    0, lba, count);
+			if ((softc->flags & ADA_FLAG_CAN_48BIT) &&
+			    (lba + count >= ATA_MAX_28BIT_LBA ||
+			    count >= 256)) {
+				ata_48bit_cmd(&ccb.ataio, ATA_WRITE_MUL48,
+				    0, lba, count);
+			} else {
+				ata_28bit_cmd(&ccb.ataio, ATA_WRITE_MUL,
+				    0, lba, count);
+			}
 		}
 		xpt_polled_action(&ccb);
 
