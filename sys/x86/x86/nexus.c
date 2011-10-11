@@ -326,14 +326,21 @@ nexus_add_child(device_t bus, u_int order, const char *name, int unit)
 
 	ndev = malloc(sizeof(struct nexus_device), M_NEXUSDEV, M_NOWAIT|M_ZERO);
 	if (!ndev)
-		return(0);
+		goto fail;
+
 	resource_list_init(&ndev->nx_resources);
 
 	child = device_add_child_ordered(bus, order, name, unit);
+	if (child == NULL)
+		goto fail1;
 
 	device_set_ivars(child, ndev);
 
 	return(child);
+fail1:
+	free(ndev, M_NEXUSDEV);
+fail:
+	return (NULL);
 }
 
 static void
