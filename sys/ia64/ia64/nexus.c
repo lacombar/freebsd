@@ -79,8 +79,7 @@ static struct rman irq_rman, port_rman, mem_rman;
 static	int nexus_probe(device_t);
 static	int nexus_attach(device_t);
 static	int nexus_print_child(device_t, device_t);
-static device_t nexus_add_child(device_t bus, u_int order, const char *name,
-				int unit);
+static	device_t nexus_add_child(device_t, u_int, const char *, int);
 static	struct resource *nexus_alloc_resource(device_t, device_t, int, int *,
 					      u_long, u_long, u_long, u_int);
 static	int nexus_adjust_resource(device_t, device_t, int, struct resource *,
@@ -91,12 +90,12 @@ static	int nexus_deactivate_resource(device_t, device_t, int, int,
 				      struct resource *);
 static	int nexus_release_resource(device_t, device_t, int, int,
 				   struct resource *);
-static	int nexus_setup_intr(device_t, device_t, struct resource *, int flags,
-			     driver_filter_t filter, void (*)(void *), void *, 
+static	int nexus_setup_intr(device_t, device_t, struct resource *, int,
+			     driver_filter_t, void (*)(void *), void *,
 			     void **);
 static	int nexus_teardown_intr(device_t, device_t, struct resource *,
 				void *);
-static struct resource_list *nexus_get_reslist(device_t dev, device_t child);
+static struct resource_list *nexus_get_reslist(device_t, device_t);
 static	int nexus_set_resource(device_t, device_t, int, int, u_long, u_long);
 static	int nexus_get_resource(device_t, device_t, int, int, u_long *,
 			       u_long *);
