@@ -1,0 +1,64 @@
+/*-
+ * Copyright (c) 2011 Arnaud Lacombe
+ * All rights reserved.
+ *
+ * Permission to use, copy, modify, and/or distribute this software for any
+ * purpose with or without fee is hereby granted, provided that the above
+ * copyright notice and this permission notice appear in all copies.
+ * 
+ * THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
+ * WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
+ * MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
+ * ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
+ * WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
+ * ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
+ * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+ * 
+ */
+
+#ifndef I386_I386_MD6117D_H
+#define I386_I386_MD6117D_H
+
+#define WDT0_PORT_IDX	0x22
+#define WDT0_PORT_DATA	0x23
+
+#define WDT0_PORT_BASE		WDT0_PORT_IDX
+#define WDT0_PORT_LENGTH	2
+
+/* Indexes */
+#define WDT0_IDX_CONTROL	0x37
+#define WDT0_IDX_ACTION		0x38
+#define WDT_IDX_COUNTER_B0	0x39
+#define WDT_IDX_COUNTER_B1	0x3a
+#define WDT_IDX_COUNTER_B2	0x3b
+#define WDT0_IDX_STATUS		0x3c
+
+#define WDT0_FREQ		32768
+#define WDT0_COUNTER_WIDTH	24
+
+#define WDT0_MIN_TIMEOUT	(1000000 / WDT0_FREQ)	/* in usec. */
+#define WDT0_MAX_TIMEOUT	((1<<WDT0_COUNTER_WIDTH) * WDT0_MIN_TIMEOUT)
+
+#define WDT0_1SEC		WDT0_FREQ
+
+/* WDT0_IDX_CONTROL */
+#define WDT_ENABLE		(1 << 6)
+
+/* WDT0_IDX_STATUS */
+#define WDT_RESET		(1 << 6)
+
+/* WDT0_IDX_ACTION */
+#define WDT_ACTION_IRQ3		0x10
+#define WDT_ACTION_IRQ4		0x20
+#define WDT_ACTION_IRQ5		0x30
+#define WDT_ACTION_IRQ6		0x40
+#define WDT_ACTION_IRQ7		0x50
+#define WDT_ACTION_IRQ9		0x60
+#define WDT_ACTION_IRQ10	0x70
+#define WDT_ACTION_IRQ12	0x90
+#define WDT_ACTION_IRQ14	0xa0
+#define WDT_ACTION_IRQ15	0xb0
+#define WDT_ACTION_NMI		0xc0
+#define WDT_ACTION_RESET	0xd0
+
+#endif /* I386_I386_MD6117D_H */
