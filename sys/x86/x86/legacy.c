@@ -73,6 +73,7 @@ static	int legacy_attach(device_t);
 static	int legacy_print_child(device_t, device_t);
 static device_t legacy_add_child(device_t bus, u_int order, const char *name,
 				int unit);
+static	void legacy_child_detached(device_t, device_t);
 static	int legacy_read_ivar(device_t, device_t, int, uintptr_t *);
 static	int legacy_write_ivar(device_t, device_t, int, uintptr_t);
 
@@ -88,6 +89,7 @@ static device_method_t legacy_methods[] = {
 	/* Bus interface */
 	DEVMETHOD(bus_print_child,	legacy_print_child),
 	DEVMETHOD(bus_add_child,	legacy_add_child),
+	DEVMETHOD(bus_child_detached,	legacy_child_detached),
 	DEVMETHOD(bus_read_ivar,	legacy_read_ivar),
 	DEVMETHOD(bus_write_ivar,	legacy_write_ivar),
 	DEVMETHOD(bus_alloc_resource,	bus_generic_alloc_resource),
@@ -194,10 +196,18 @@ legacy_add_child(device_t bus, u_int order, const char *name, int unit)
 	if (child == NULL)
 		free(atdev, M_LEGACYDEV);
 	else
-		/* should we free this in legacy_child_detached? */
 		device_set_ivars(child, atdev);
 
 	return (child);
+}
+
+static void
+legacy_child_detached(device_t bus, device_t child)
+{
+	struct legacy_device *atdev = DEVTOAT(child);
+
+	device_set_ivars(child, NULL);
+	free(atdev, M_LEGACYDEV);
 }
 
 static int
