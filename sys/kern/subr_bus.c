@@ -2513,7 +2513,8 @@ device_unbusy(device_t dev)
 void
 device_quiet(device_t dev)
 {
-	dev->flags |= DF_QUIET;
+	if (bootverbose < 2)
+		dev->flags |= DF_QUIET;
 }
 
 /**
