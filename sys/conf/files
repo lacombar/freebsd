@@ -2197,6 +2197,8 @@ dev/vxge/vxgehal/vxgehal-driver.c	optional vxge
 dev/vxge/vxgehal/vxgehal-virtualpath.c	optional vxge
 dev/vxge/vxgehal/vxgehal-channel.c	optional vxge
 dev/vxge/vxgehal/vxgehal-fifo.c		optional vxge
+dev/watchdog/watchdog.c		optional watchdog
+dev/watchdog/watchdog_if.m	optional watchdog
 dev/wb/if_wb.c			optional wb pci
 dev/wds/wd7000.c		optional wds isa
 dev/wi/if_wi.c			optional wi
