@@ -653,6 +653,8 @@ void	bus_set_pass(int pass);
 #define	DEVMETHOD	KOBJMETHOD
 #define	DEVMETHOD_END	KOBJMETHOD_END
 
+#define	DEVMETHOD_END	KOBJMETHOD_END
+
 /*
  * Some common device interfaces.
  */
