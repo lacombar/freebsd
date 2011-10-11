@@ -71,8 +71,7 @@ struct legacy_device {
 static	int legacy_probe(device_t);
 static	int legacy_attach(device_t);
 static	int legacy_print_child(device_t, device_t);
-static device_t legacy_add_child(device_t bus, u_int order, const char *name,
-				int unit);
+static	device_t legacy_add_child(device_t, u_int, const char *, int);
 static	void legacy_child_detached(device_t, device_t);
 static	int legacy_read_ivar(device_t, device_t, int, uintptr_t *);
 static	int legacy_write_ivar(device_t, device_t, int, uintptr_t);
