@@ -83,6 +83,7 @@ static struct resource *
 static int	nexus_activate_resource(device_t, device_t, int, int,
 		    struct resource *);
 static device_t	nexus_add_child(device_t, u_int, const char *, int);
+static void	nexus_child_detached(device_t, device_t);
 static int	nexus_attach(device_t);
 static int	nexus_deactivate_resource(device_t, device_t, int, int,
 		    struct resource *);
@@ -112,6 +113,7 @@ static device_method_t nexus_methods[] = {
 
 	/* Bus interface */
 	DEVMETHOD(bus_add_child,	nexus_add_child),
+	DEVMETHOD(bus_child_detached,	nexus_child_detached),
 	DEVMETHOD(bus_activate_resource,nexus_activate_resource),
 	DEVMETHOD(bus_alloc_resource,	nexus_alloc_resource),
 	DEVMETHOD(bus_deactivate_resource,	nexus_deactivate_resource),
@@ -301,10 +303,20 @@ nexus_add_child(device_t bus, u_int order, const char *name, int unit)
 		return (0);
 	}
 
-	/* should we free this in nexus_child_detached? */
 	device_set_ivars(child, ndev);
 
 	return (child);
+}
+
+static void
+nexus_child_detached(device_t bus, device_t child)
+{
+	struct nexus_device *ndev = DEVTONX(child);
+
+	resource_list_free(&ndev->nx_resources);
+
+	device_set_ivars(child, NULL);
+	free(ndev, M_NEXUSDEV);
 }
 
 /*
