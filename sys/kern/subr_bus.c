@@ -143,7 +143,7 @@ static MALLOC_DEFINE(M_BUS_SC, "bus-sc", "Bus data structures, softc");
 
 #ifdef BUS_DEBUG
 
-static int bus_debug = 1;
+static int bus_debug = 0;
 TUNABLE_INT("bus.debug", &bus_debug);
 SYSCTL_INT(_debug, OID_AUTO, bus_debug, CTLFLAG_RW, &bus_debug, 0,
     "Debug bus code");
