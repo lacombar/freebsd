@@ -54,4 +54,7 @@ struct gpiobus_ivar
 	uint32_t	*pins;	/* pins map */
 };
 
+extern devclass_t gpiobus_devclass;
+extern driver_t gpiobus_driver;
+
 #endif	/* __GPIOBUS_H__ */

@@ -56,6 +56,7 @@ __FBSDID("$FreeBSD$");
 #include <arm/xscale/ixp425/ixp425var.h>
 #include <arm/xscale/ixp425/ixdp425reg.h>
 
+#include <dev/gpio/gpiobusvar.h>
 #include <dev/iicbus/iiconf.h>
 #include <dev/iicbus/iicbus.h>
 
@@ -490,8 +491,8 @@ static driver_t cambria_gpio_driver = {
 	sizeof(struct cambria_gpio_softc),
 };
 static devclass_t cambria_gpio_devclass;
-extern devclass_t gpiobus_devclass, gpioc_devclass;
-extern driver_t gpiobus_driver, gpioc_driver;
+extern devclass_t gpioc_devclass;
+extern driver_t gpioc_driver;
 
 DRIVER_MODULE(gpio_cambria, iicbus, cambria_gpio_driver, cambria_gpio_devclass, 0, 0);
 DRIVER_MODULE(gpiobus, gpio_cambria, gpiobus_driver, gpiobus_devclass, 0, 0);
