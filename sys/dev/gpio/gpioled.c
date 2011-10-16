@@ -98,14 +98,14 @@ gpioled_attach(device_t dev)
 
 	sc = device_get_softc(dev);
 	GPIOLED_LOCK_INIT(sc, dev);
+
 	if (resource_string_value(device_get_name(dev), 
 	    device_get_unit(dev), "name", &name))
-		name = NULL;
+		name = device_get_nameunit(dev);
 
 	GPIOBUS_PIN_SETFLAGS(parent, dev, GPIOLED_PIN, GPIO_PIN_OUTPUT);
 
-	sc->sc_leddev = led_create(gpioled_control, dev, name ? name :
-	    device_get_nameunit(dev));
+	sc->sc_leddev = led_create(gpioled_control, dev, name);
 
 	return (0);
 }
