@@ -55,7 +55,6 @@ struct gpioiic_softc
 {
 	device_t	sc_dev;
 	device_t	sc_busdev;
-	struct cdev	*sc_leddev;
 	int		scl_pin;
 	int		sda_pin;
 };
