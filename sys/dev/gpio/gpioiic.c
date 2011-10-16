@@ -53,8 +53,6 @@ __FBSDID("$FreeBSD$");
 
 struct gpioiic_softc 
 {
-	device_t	sc_dev;
-	device_t	sc_busdev;
 	int		scl_pin;
 	int		sda_pin;
 };
@@ -71,7 +69,6 @@ static int gpioiic_getsda(device_t);
 static int gpioiic_getscl(device_t);
 static int gpioiic_reset(device_t, u_char, u_char, u_char *);
 
-
 static int
 gpioiic_probe(device_t dev)
 {
@@ -83,11 +80,8 @@ gpioiic_probe(device_t dev)
 static int
 gpioiic_attach(device_t dev)
 {
-	struct gpioiic_softc	*sc = device_get_softc(dev);
 	device_t		bitbang;
 
-	sc->sc_dev = dev;
-	sc->sc_busdev = device_get_parent(dev);
 	if (resource_int_value(device_get_name(dev),
 		device_get_unit(dev), "scl", &sc->scl_pin))
 		sc->scl_pin = SCL_PIN_DEFAULT;
@@ -109,30 +103,28 @@ gpioiic_attach(device_t dev)
 static void
 gpioiic_reset_bus(device_t dev)
 {
-	struct gpioiic_softc		*sc = device_get_softc(dev);
+	device_t	parent = device_get_parent(dev);
 
-	GPIOBUS_PIN_SETFLAGS(sc->sc_busdev, sc->sc_dev, sc->sda_pin,
-	    GPIO_PIN_INPUT);
-	GPIOBUS_PIN_SETFLAGS(sc->sc_busdev, sc->sc_dev, sc->scl_pin,
-	    GPIO_PIN_INPUT);
+	GPIOBUS_PIN_SETFLAGS(parent, dev, sc->sda_pin, GPIO_PIN_INPUT);
+	GPIOBUS_PIN_SETFLAGS(parent, dev, sc->scl_pin, GPIO_PIN_INPUT);
 }
 
 static int
 gpioiic_callback(device_t dev, int index, caddr_t data)
 {
-	struct gpioiic_softc	*sc = device_get_softc(dev);
-	int			error = 0;
+	device_t	parent = device_get_parent(dev);
+	int		error = 0;
 
 	switch (index) {
 	case IIC_REQUEST_BUS:
-		GPIOBUS_LOCK_BUS(sc->sc_busdev);
-		GPIOBUS_ACQUIRE_BUS(sc->sc_busdev, sc->sc_dev);
-		GPIOBUS_UNLOCK_BUS(sc->sc_busdev);
+		GPIOBUS_LOCK_BUS(parent);
+		GPIOBUS_ACQUIRE_BUS(parent, dev);
+		GPIOBUS_UNLOCK_BUS(parent);
 		break;
 	case IIC_RELEASE_BUS:
-		GPIOBUS_LOCK_BUS(sc->sc_busdev);
-		GPIOBUS_RELEASE_BUS(sc->sc_busdev, sc->sc_dev);
-		GPIOBUS_UNLOCK_BUS(sc->sc_busdev);
+		GPIOBUS_LOCK_BUS(parent);
+		GPIOBUS_RELEASE_BUS(parent, dev);
+		GPIOBUS_UNLOCK_BUS(parent);
 		break;
 	default:
 		error = EINVAL;
@@ -144,14 +136,14 @@ gpioiic_callback(device_t dev, int index, caddr_t data)
 static void
 gpioiic_setsda(device_t dev, int val)
 {
-	struct gpioiic_softc		*sc = device_get_softc(dev);
+	device_t	parent = device_get_parent(dev);
 
 	if (val == 0) {
-		GPIOBUS_PIN_SET(sc->sc_busdev, sc->sc_dev, sc->sda_pin, 0);
-		GPIOBUS_PIN_SETFLAGS(sc->sc_busdev, sc->sc_dev, sc->sda_pin,
+		GPIOBUS_PIN_SET(parent, dev, sc->sda_pin, 0);
+		GPIOBUS_PIN_SETFLAGS(parent, dev, sc->sda_pin,
 		    GPIO_PIN_OUTPUT);
 	} else {
-		GPIOBUS_PIN_SETFLAGS(sc->sc_busdev, sc->sc_dev, sc->sda_pin,
+		GPIOBUS_PIN_SETFLAGS(parent, dev, sc->sda_pin,
 		    GPIO_PIN_INPUT);
 	}
 }
@@ -159,14 +151,14 @@ gpioiic_setsda(device_t dev, int val)
 static void
 gpioiic_setscl(device_t dev, int val)
 {
-	struct gpioiic_softc		*sc = device_get_softc(dev);
+	device_t	parent = device_get_parent(dev);
 
 	if (val == 0) {
-		GPIOBUS_PIN_SET(sc->sc_busdev, sc->sc_dev, sc->scl_pin, 0);
-		GPIOBUS_PIN_SETFLAGS(sc->sc_busdev, sc->sc_dev, sc->scl_pin,
+		GPIOBUS_PIN_SET(parent, dev, sc->scl_pin, 0);
+		GPIOBUS_PIN_SETFLAGS(parent, dev, sc->scl_pin,
 		    GPIO_PIN_OUTPUT);
 	} else {
-		GPIOBUS_PIN_SETFLAGS(sc->sc_busdev, sc->sc_dev, sc->scl_pin,
+		GPIOBUS_PIN_SETFLAGS(parent, dev, sc->scl_pin,
 		    GPIO_PIN_INPUT);
 	}
 }
@@ -174,12 +166,11 @@ gpioiic_setscl(device_t dev, int val)
 static int
 gpioiic_getscl(device_t dev)
 {
-	struct gpioiic_softc		*sc = device_get_softc(dev);
-	unsigned int			val;
+	device_t	parent = device_get_parent(dev);
+	unsigned int	val;
 
-	GPIOBUS_PIN_SETFLAGS(sc->sc_busdev, sc->sc_dev, sc->scl_pin,
-	    GPIO_PIN_INPUT);
-	GPIOBUS_PIN_GET(sc->sc_busdev, sc->sc_dev, sc->scl_pin, &val);
+	GPIOBUS_PIN_SETFLAGS(parent, dev, sc->scl_pin, GPIO_PIN_INPUT);
+	GPIOBUS_PIN_GET(parent, dev, sc->scl_pin, &val);
 
 	return ((int)val);
 }
@@ -187,12 +178,11 @@ gpioiic_getscl(device_t dev)
 static int
 gpioiic_getsda(device_t dev)
 {
-	struct gpioiic_softc		*sc = device_get_softc(dev);
-	unsigned int			val;
+	device_t	parent = device_get_parent(dev);
+	unsigned int	val;
 
-	GPIOBUS_PIN_SETFLAGS(sc->sc_busdev, sc->sc_dev, sc->sda_pin,
-	    GPIO_PIN_INPUT);
-	GPIOBUS_PIN_GET(sc->sc_busdev, sc->sc_dev, sc->sda_pin, &val);
+	GPIOBUS_PIN_SETFLAGS(parent, dev, sc->sda_pin, GPIO_PIN_INPUT);
+	GPIOBUS_PIN_GET(parent, dev, sc->sda_pin, &val);
 
 	return ((int)val);
 }
@@ -200,15 +190,15 @@ gpioiic_getsda(device_t dev)
 static int
 gpioiic_reset(device_t dev, u_char speed, u_char addr, u_char *oldaddr)
 {
-	struct gpioiic_softc		*sc = device_get_softc(dev);
+	device_t	parent = device_get_parent(dev);
 
-	GPIOBUS_LOCK_BUS(sc->sc_busdev);
-	GPIOBUS_ACQUIRE_BUS(sc->sc_busdev, sc->sc_dev);
+	GPIOBUS_LOCK_BUS(parent);
+	GPIOBUS_ACQUIRE_BUS(parent, dev);
 
-	gpioiic_reset_bus(sc->sc_dev);
+	gpioiic_reset_bus(dev);
 
-	GPIOBUS_RELEASE_BUS(sc->sc_busdev, sc->sc_dev);
-	GPIOBUS_UNLOCK_BUS(sc->sc_busdev);
+	GPIOBUS_RELEASE_BUS(parent, dev);
+	GPIOBUS_UNLOCK_BUS(parent);
 
 	return (IIC_ENOADDR);
 }
@@ -235,7 +225,6 @@ static device_method_t gpioiic_methods[] = {
 static driver_t gpioiic_driver = {
 	"gpioiic",
 	gpioiic_methods,
-	sizeof(struct gpioiic_softc),
 };
 
 DRIVER_MODULE(gpioiic, gpiobus, gpioiic_driver, gpioiic_devclass, 0, 0);
