@@ -64,10 +64,7 @@ static struct cdevsw gpioc_cdevsw = {
 };
 
 struct gpioc_softc {
-	device_t	sc_dev;		/* gpiocX dev */
-	device_t	sc_pdev;	/* gpioX dev */
 	struct cdev	*sc_ctl_dev;	/* controller device */
-	int		sc_unit;
 };
 
 static int
@@ -81,17 +78,15 @@ static int
 gpioc_attach(device_t dev)
 {
 	struct gpioc_softc *sc = device_get_softc(dev);
+	int unit = device_get_unit(dev);
 
-	sc->sc_dev = dev;
-	sc->sc_pdev = device_get_parent(dev);
-	sc->sc_unit = device_get_unit(dev);
-	sc->sc_ctl_dev = make_dev(&gpioc_cdevsw, sc->sc_unit,
-	    UID_ROOT, GID_WHEEL, 0600, "gpioc%d", sc->sc_unit);
+	sc->sc_ctl_dev = make_dev(&gpioc_cdevsw, unit,
+	    UID_ROOT, GID_WHEEL, 0600, "gpioc%d", unit);
 	if (!sc->sc_ctl_dev) {
-		printf("Failed to create gpioc%d", sc->sc_unit);
+		printf("Failed to create gpioc%d", unit);
 		return (ENXIO);
 	}
-	sc->sc_ctl_dev->si_drv1 = sc;
+	sc->sc_ctl_dev->si_drv1 = dev;
 
 	return (0);
 }
@@ -115,38 +110,39 @@ static int
 gpioc_ioctl(struct cdev *cdev, u_long cmd, caddr_t arg, int fflag, 
     struct thread *td)
 {
-	int max_pin, res;
-	struct gpioc_softc *sc = cdev->si_drv1;
+	device_t dev = cdev->si_drv1;
+	device_t parent = device_get_parent(dev);
 	struct gpio_pin pin;
 	struct gpio_req req;
+	int max_pin, res;
 
 	switch (cmd) {
 		case GPIOMAXPIN:
 			max_pin = -1;
-			res = GPIO_PIN_MAX(sc->sc_pdev, &max_pin);
+			res = GPIO_PIN_MAX(parent, &max_pin);
 			bcopy(&max_pin, arg, sizeof(max_pin));
 			break;
 		case GPIOGETCONFIG:
 			bcopy(arg, &pin, sizeof(pin));
 			dprintf("get config pin %d\n", pin.gp_pin);
-			res = GPIO_PIN_GETFLAGS(sc->sc_pdev, pin.gp_pin,
+			res = GPIO_PIN_GETFLAGS(parent, pin.gp_pin,
 			    &pin.gp_flags);
 			/* Fail early */
 			if (res)
 				break;
-			GPIO_PIN_GETCAPS(sc->sc_pdev, pin.gp_pin, &pin.gp_caps);
-			GPIO_PIN_GETNAME(sc->sc_pdev, pin.gp_pin, pin.gp_name);
+			GPIO_PIN_GETCAPS(parent, pin.gp_pin, &pin.gp_caps);
+			GPIO_PIN_GETNAME(parent, pin.gp_pin, pin.gp_name);
 			bcopy(&pin, arg, sizeof(pin));
 			break;
 		case GPIOSETCONFIG:
 			bcopy(arg, &pin, sizeof(pin));
 			dprintf("set config pin %d\n", pin.gp_pin);
-			res = GPIO_PIN_SETFLAGS(sc->sc_pdev, pin.gp_pin,
+			res = GPIO_PIN_SETFLAGS(parent, pin.gp_pin,
 			    pin.gp_flags);
 			break;
 		case GPIOGET:
 			bcopy(arg, &req, sizeof(req));
-			res = GPIO_PIN_GET(sc->sc_pdev, req.gp_pin,
+			res = GPIO_PIN_GET(parent, req.gp_pin,
 			    &req.gp_value);
 			dprintf("read pin %d -> %d\n", 
 			    req.gp_pin, req.gp_value);
@@ -154,7 +150,7 @@ gpioc_ioctl(struct cdev *cdev, u_long cmd, caddr_t arg, int fflag,
 			break;
 		case GPIOSET:
 			bcopy(arg, &req, sizeof(req));
-			res = GPIO_PIN_SET(sc->sc_pdev, req.gp_pin, 
+			res = GPIO_PIN_SET(parent, req.gp_pin,
 			    req.gp_value);
 			dprintf("write pin %d -> %d\n", 
 			    req.gp_pin, req.gp_value);
@@ -163,7 +159,7 @@ gpioc_ioctl(struct cdev *cdev, u_long cmd, caddr_t arg, int fflag,
 			bcopy(arg, &req, sizeof(req));
 			dprintf("toggle pin %d\n", 
 			    req.gp_pin);
-			res = GPIO_PIN_TOGGLE(sc->sc_pdev, req.gp_pin);
+			res = GPIO_PIN_TOGGLE(parent, req.gp_pin);
 			break;
 		default:
 			return (ENOTTY);
