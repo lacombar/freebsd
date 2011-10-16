@@ -1,0 +1,498 @@
+#ifndef I386_I386_CS5536_H
+#define I386_I386_CS5536_H
+
+/* Local Base Address Registers */
+#define MSR_LBAR_KEL			0x51400009
+#define MSR_LBAR_SMB			0x5140000b
+#define MSR_LBAR_GPIO			0x5140000c
+#define MSR_LBAR_MFGPT			0x5140000d
+#define MSR_LBAR_ACPI			0x5140000e
+#define MSR_LBAR_PMS			0x5140000f
+#define MSR_LBAR_FLSH0			0x51400010
+#define MSR_LBAR_FLSH1			0x51400011
+#define MSR_LBAR_FLSH2			0x51400012
+#define MSR_LBAR_FLSH3			0x51400013
+
+/* Standard GeodeLinkTM Device MSRs */
+
+#define MSR_GLIU_GLD_MSR_CAP		0x51010000
+#define MSR_GLIU_GLD_MSR_CONFIG		0x51010001
+#define MSR_GLIU_GLD_MSR_SMI		0x51010002
+#define MSR_GLIU_GLD_MSR_ERROR		0x51010003
+#define MSR_GLIU_GLD_MSR_PM		0x51010004
+#define MSR_GLIU_GLD_MSR_DIAG		0x51010005
+
+/* P2D Descriptor MSRs */
+
+#define MSR_GLIU_P2D_BM0		0x51010020
+#define MSR_GLIU_P2D_BM1		0x51010021
+#define MSR_GLIU_P2D_BM2		0x51010022
+#define MSR_GLIU_P2D_BMK0		0x51010023
+#define MSR_GLIU_P2D_BMK1		0x51010024
+#define MSR_GLIU_P2D_BM3		0x51010025
+#define MSR_GLIU_P2D_BM4		0x51010026
+
+/* GLIU Specific MSRs */
+
+#define MSR_GLIU_COH			0x51010080
+#define MSR_GLIU_PAE			0x51010081
+#define MSR_GLIU_ARB			0x51010082
+#define MSR_GLIU_ASMI			0x51010083
+#define MSR_GLIU_AERR			0x51010084
+#define MSR_GLIU_DEBUG			0x51010085
+#define MSR_GLIU_PHY_CAP		0x51010086
+#define MSR_GLIU_NOUT_RESP		0x51010087
+#define MSR_GLIU_NOUT_WDATA		0x51010088
+#define MSR_GLIU_WHOAMI			0x5101008B
+#define MSR_GLIU_SLV_DIS		0x5101008C
+#define MSR_GLIU_STATISTIC_CNT0		0x510100A0
+#define MSR_GLIU_STATISTIC_MASK0	0x510100A1
+#define MSR_GLIU_STATISTIC_ACTION0	0x510100A2
+#define MSR_GLIU_STATISTIC_CNT1		0x510100A4
+#define MSR_GLIU_STATISTIC_MASK1	0x510100A5
+#define MSR_GLIU_STATISTIC_ACTION1	0x510100A6
+#define MSR_GLIU_STATISTIC_CNT2		0x510100A8
+#define MSR_GLIU_STATISTIC_MASK2	0x510100A9
+#define MSR_GLIU_STATISTIC_ACTION2	0x510100AA
+#define MSR_GLIU_RQ_COMP_VAL		0x510100C0
+#define MSR_GLIU_RQ_COMP_MASK		0x510100C1
+#define MSR_GLIU_DA_COMP_VAL_LO		0x510100D0
+#define MSR_GLIU_DA_COMP_VAL_HI		0x510100D1
+#define MSR_GLIU_DA_COMP_MASK_LO	0x510100D2
+#define MSR_GLIU_DA_COMP_MASK_HI	0x510100D3
+
+/* IOD Descriptor MSRs */
+
+#define MSR_GLIU_IOD_BM0		0x510100E0
+#define MSR_GLIU_IOD_BM1		0x510100E1
+#define MSR_GLIU_IOD_BM2		0x510100E2
+#define MSR_GLIU_IOD_BM3		0x510100E3
+#define MSR_GLIU_IOD_BM4		0x510100E4
+#define MSR_GLIU_IOD_BM5		0x510100E5
+#define MSR_GLIU_IOD_BM6		0x510100E6
+#define MSR_GLIU_IOD_BM7		0x510100E7
+#define MSR_GLIU_IOD_BM8		0x510100E8
+#define MSR_GLIU_IOD_BM9		0x510100E9
+#define MSR_GLIU_IOD_SC0		0x510100EA
+#define MSR_GLIU_IOD_SC1		0x510100EB
+#define MSR_GLIU_IOD_SC2		0x510100EC
+#define MSR_GLIU_IOD_SC3		0x510100ED
+#define MSR_GLIU_IOD_SC4		0x510100EE
+#define MSR_GLIU_IOD_SC5		0x510100EF
+#define MSR_GLIU_IOD_SC6		0x510100F0
+#define MSR_GLIU_IOD_SC7		0x510100F1
+
+/* Standard ACC GeodeLink Device MSRs */
+
+#define MSR_ACC_GLD_MSR_CAP		0x51500000
+#define MSR_ACC_GLD_MSR_CONFIG		0x51500001
+#define MSR_ACC_GLD_MSR_SMI		0x51500002
+#define MSR_ACC_GLD_MSR_ERROR		0x51500003
+#define MSR_ACC_GLD_MSR_PM		0x51500004
+#define MSR_ACC_GLD_MSR_DIAG		0x51500005
+
+/* ACC Native Registers */
+
+#define ACC_GPIO_STATUS			0x00
+#define ACC_GPIO_CNTL			0x04
+#define ACC_CODEC_STATUS			0x08
+#define ACC_CODEC_CNTL			0x0C
+#define ACC_IRQ_STATUS			0x12
+#define ACC_ENGINE_CNTL			0x14
+#define ACC_BM0_CMD			0x20
+#define ACC_BM0_STATUS			0x21
+#define ACC_BM0_PRD			0x24
+#define ACC_BM1_CMD			0x28
+#define ACC_BM1_STATUS			0x29
+#define ACC_BM1_PRD			0x2C
+#define ACC_BM2_CMD			0x30
+#define ACC_BM2_STATUS			0x31
+#define ACC_BM2_PRD			0x34
+#define ACC_BM3_CMD			0x38
+#define ACC_BM3_STATUS			0x39
+#define ACC_BM3_PRD			0x3C
+#define ACC_BM4_CMD			0x40
+#define ACC_BM4_STATUS			0x41
+#define ACC_BM4_PRD			0x44
+
+#define ACC_BM5_CMD			0x48
+#define ACC_BM5_STATUS			0x49
+#define ACC_BM5_PRD			0x4C
+#define ACC_BM6_CMD			0x50
+#define MSR_ACC_BM6_STATUS			0x51
+#define ACC_BM6_PRD			0x52
+#define ACC_BM7_CMD			0x58
+#define ACC_BM7_STATUS			0x59
+#define ACC_BM7_PRD			0x5C
+#define ACC_BM0_PNTR			0x60
+#define ACC_BM1_PNTR			0x64
+#define ACC_BM2_PNTR			0x68
+#define ACC_BM3_PNTR			0x6C
+#define ACC_BM4_PNTR			0x70
+#define ACC_BM5_PNTR			0x74
+#define ACC_BM6_PNTR			0x78
+#define ACC_BM7_PNTR			0x7C
+
+/* Standard USB GeodeLink Device MSRs */
+
+#define MSR_USB_GLD_MSR_CAP		0x51200000
+#define MSR_USB_GLD_MSR_CONFIG		0x51200001
+#define MSR_USB_GLD_MSR_SMI		0x51200002
+#define MSR_USB_GLD_MSR_ERROR		0x51200003
+#define MSR_USB_GLD_MSR_DIAG		0x51200005
+
+
+/* USB Specific MSRs */
+
+#define MSR_USBMSROHCB			0x51200008
+#define MSR_USBMSREHCB			0x51200009
+#define MSR_USBMSRUDCB			0x5120000A
+#define MSR_USBMSRUOCB			0x5120000B
+
+/* SMB Native Registers */
+#define SMB_SDA				0x00
+#define SMB_STS				0x01
+#define SMB_CTRL_STS			0x02
+#define SMB_CTRL1			0x03
+#define SMB_ADDR			0x04
+#define SMB_CTRL2			0x05
+#define SMB_CTRL3			0x06
+
+/* PIC Specific MSRs */
+#define MSR_PIC_YSEL_LOW		0x51400020
+#define MSR_PIC_YSEL_HIGH		0x51400021
+#define MSR_PIC_ZSEL_LOW		0x51400022
+#define MSR_PIC_ZSEL_HIGH		0x51400023
+#define MSR_PIC_IRQM_PRIM		0x51400024
+#define MSR_PIC_IRQM_LPC		0x51400025
+#define MSR_PIC_XIRR_STS_LOW		0x51400026
+#define MSR_PIC_XIRR_STS_HIGH		0x51400027
+#define MSR_PIC_SHDW			0x51400034
+
+/* KEL Specific MSRs */
+#define MSR_KELX_CTL			0x5140001f
+
+/* KEL Native Registers */
+#define KEL_HCE_CTRL			0x100
+#define KEL_HCE_IN			0x104
+#define KEL_HCE_OUT			0x108
+#define KEL_HCE_STS			0x10C
+#define KEL_PORTA			0x092
+
+/* KEL Legacy Registers (emulated) */
+#define KEL_HCE_OUT			0x60
+#define KEL_HCE_IN			0x60
+#define KEL_HCE_STS			0x64
+#define KEL_HCE_IN			0x64
+
+/* UART/IR Controller Specific MSRs */
+#define MSR_UART1_MOD			0x51400038
+#define MSR_UART1_DONG			0x51400039
+#define MSR_UART1_CONF			0x5140003A
+#define MSR_UART1_RSVD_MSR		0x5140003B
+#define MSR_UART2_MOD			0x5140003C
+#define MSR_UART2_DONG			0x5140003D
+#define MSR_UART2_CONF			0x5140003E
+#define MSR_UART2_RSVD_MSR		0x5140003F
+
+/* DMA Specific MSRs */
+#define MSR_DMA_MAP			0x51400040
+#define MSR_DMA_SHDW_CH0		0x51400041
+#define MSR_DMA_SHDW_CH1		0x51400042
+#define MSR_DMA_SHDW_CH2		0x51400043
+#define MSR_DMA_SHDW_CH3		0x51400044
+#define MSR_DMA_SHDW_CH4		0x51400045
+#define MSR_DMA_SHDW_CH5		0x51400046
+#define MSR_DMA_SHDW_CH6		0x51400047
+#define MSR_DMA_SHDW_CH7		0x51400048
+#define MSR_DMA_MSK_SHDW		0x51400049
+
+
+/* LPC Specific MSRs */
+
+#define MSR_LPC_EADDR			0x5140004C
+#define MSR_LPC_ESTAT			0x5140004D
+#define MSR_LPC_SIRQ			0x5140004E
+#define MSR_LPC_RSVD			0x5140004F
+
+/* RTC Specific MSRs */
+
+#define MSR_RTC_RAM_LOCK		0x51400054
+#define MSR_RTC_DOMA_OFFSET		0x51400055
+#define MSR_RTC_MONA_OFFSET		0x51400056
+#define MSR_RTC_CEN_OFFSET		0x51400057
+
+/* RTC Native Registers */
+
+#define MSR_RTC_SEC			0x00
+#define MSR_RTC_SECA			0x01
+#define MSR_RTC_MIN			0x02
+#define MSR_RTC_MINA			0x03
+#define MSR_RTC_HR			0x04
+#define MSR_RTC_HRA			0x05
+#define MSR_RTC_DOW			0x06
+#define MSR_RTC_DOM			0x07
+#define MSR_RTC_MONTH			0x08
+#define MSR_RTC_YEAR			0x09
+#define MSR_RTC_CRA			0x0A
+#define MSR_RTC_CRB			0x0B
+#define MSR_RTC_CRC			0x0C
+#define MSR_RTC_CRD			0x0D
+
+/* GPIO Low/High Bank Feature Bit Registers */
+
+#define GPIOL_OUT_VAL			0x00
+#define GPIOL_OUT_EN			0x04
+#define GPIOL_OUT_OD_EN			0x08
+#define GPIOL_OUT_INVRT_EN		0x0C
+#define GPIOL_OUT_AUX1_SEL		0x10
+#define GPIOL_OUT_AUX2_SEL		0x14
+#define GPIOL_PU_EN			0x18
+#define GPIOL_PD_EN			0x1C
+#define GPIOL_IN_EN			0x20
+#define GPIOL_IN_INV_EN			0x24
+#define GPIOL_IN_FLTR_EN		0x28
+#define GPIOL_IN_EVNTCNT_EN		0x2C
+#define GPIOL_READ_BACK			0x30
+
+#define GPIOL_IN_AUX1_SEL		0x34
+#define GPIOL_EVNT_EN			0x38
+#define GPIOL_LOCK_EN			0x3C
+#define GPIOL_IN_POSEDGE_EN		0x40
+#define GPIOL_IN_NEGEDGE_EN		0x44
+#define GPIOL_IN_POSEDGE_STS		0x48
+#define GPIOL_IN_NEGEDGE_STS		0x4C
+
+/* GPIO High Bank Feature Bit Registers */
+
+#define GPIOH_OUT_VAL			0x80
+#define GPIOH_OUT_EN			0x84
+#define GPIOH_OUT_OD_EN			0x88
+#define GPIOH_OUT_INVRT_EN		0x8C
+#define GPIOH_OUT_AUX1_SEL		0x90
+#define GPIOH_OUT_AUX2_SEL		0x94
+#define GPIOH_PU_EN			0x98
+#define GPIOH_PD_EN			0x9C
+#define GPIOH_IN_EN			0xA0
+#define GPIOH_IN_INV_EN			0xA4
+#define GPIOH_IN_FLTR_EN		0xA8
+#define GPIOH_IN_EVNTCNT_EN		0xAC
+#define GPIOH_READ_BACK			0xB0
+#define GPIOH_IN_AUX1_SEL		0xB4
+#define GPIOH_EVNT_EN			0xB8
+#define GPIOH_LOCK_EN			0xBC
+#define GPIOH_IN_POSEDGE_EN		0xC0
+#define GPIOH_IN_NEGEDGE_EN		0xC4
+#define GPIOH_IN_POSEDGE_STS		0xC8
+#define GPIOH_IN_NEGEDGE_STS		0xCC
+
+/* GPIO Input Conditioning Function Registers */
+
+#define GPIO_FLTR0_AMNT			0x50
+#define GPIO_FLTR0_CNT			0x52
+#define GPIO_EVNTCNT0			0x54
+#define GPIO_EVNTCNT0_COMP		0x56
+#define GPIO_FLTR1_AMNT			0x58
+#define GPIO_FLTR1_CNT			0x5A
+#define GPIO_EVNTCNT1			0x5C
+#define GPIO_EVNTCNT1_COMP		0x5E
+#define GPIO_FLTR2_AMNT			0x60
+#define GPIO_FLTR2_CNT			0x62
+#define GPIO_EVNTCNT2			0x64
+#define GPIO_EVNTCNT2_COMP		0x66
+#define GPIO_FLTR3_AMNT			0x68
+#define GPIO_FLTR3_CNT			0x6A
+#define GPIO_EVNTCNT3			0x6C
+#define GPIO_EVNTCNT3_COMP		0x6E
+#define GPIO_FLTR4_AMNT			0x70
+#define GPIO_FLTR4_CNT			0x72
+#define GPIO_EVNTCNT4			0x74
+#define GPIO_EVNTCNT4_COMP		0x76
+#define GPIO_FLTR5_AMNT			0x78
+#define GPIO_FLTR5_CNT			0x7A
+#define GPIO_EVNTCNT5			0x7C
+#define GPIO_EVNTCNT5_COMP		0x7E
+#define GPIO_FLTR6_AMNT			0xD0
+#define GPIO_FLTR6_CNT			0xD2
+#define GPIO_EVNTCNT6			0xD4
+#define GPIO_EVNTCNT6_COMP		0xD6
+#define GPIO_FLTR7_AMNT			0xD8
+#define GPIO_FLTR7_CNT			0xDA
+#define GPIO_EVNTCNT7			0xDC
+#define GPIO_EVNTCNT7_COMP		0xDE
+#define GPIO_FE0_SEL			0xF0
+#define GPIO_FE1_SEL			0xF1
+#define GPIO_FE2_SEL			0xF2
+#define GPIO_FE3_SEL			0xF3
+#define GPIO_FE4_SEL			0xF4
+#define GPIO_FE5_SEL			0xF5
+#define GPIO_FE6_SEL			0xF6
+#define GPIO_FE7_SEL			0xF7
+#define GPIOL_EVNTCNT_DEC		0xF8
+#define GPIOH_EVNTCNT_DEC		0xFC
+
+
+/* GPIO Interrupt and PME Mapper Registers */
+
+#define GPIO_MAP_X			0xE0
+#define GPIO_MAP_Y			0xE4
+#define GPIO_MAP_Z			0xE8
+#define GPIO_MAP_W			0xEC
+
+/* MFGPT Specific MSRs */
+
+#define MSR_MFGPT_IRQ			0x51400028
+#define MSR_MFGPT_NR			0x51400029
+#define MSR_MFGPT_RSVD			0x5140002A
+#define MSR_MFGPT_SETUP			0x5140002B
+
+/* MFGPT Native Registers */
+
+#define MFGPT0_CMP1			0x00
+#define MFGPT0_CMP2			0x02
+#define MFGPT0_CNT			0x04
+#define MFGPT0_SETUP			0x06
+#define MFGPT1_CMP1			0x08
+#define MFGPT1_CMP2			0x0A
+#define MFGPT1_CNT			0x0C
+#define MFGPT1_SETUP			0x0E
+#define MFGPT2_CMP1			0x10
+#define MFGPT2_CMP2			0x12
+#define MFGPT2_CNT			0x14
+#define MFGPT2_SETUP			0x16
+#define MFGPT3_CMP1			0x18
+#define MFGPT3_CMP2			0x1A
+#define MFGPT3_CNT			0x1C
+#define MFGPT3_SETUP			0x1E
+#define MFGPT4_CMP1			0x20
+#define MFGPT4_CMP2			0x22
+#define MFGPT4_CNT			0x24
+#define MFGPT4_SETUP			0x26
+#define MFGPT5_CMP1			0x28
+#define MFGPT5_CMP2			0x2A
+#define MFGPT5_CNT			0x2C
+#define MFGPT5_SETUP			0x2E
+#define MFGPT6_CMP1			0x30
+#define MFGPT6_CMP2			0x32
+#define MFGPT6_CNT			0x34
+#define MFGPT6_SETUP			0x36
+#define MFGPT7_CMP1			0x38
+#define MFGPT7_CMP2			0x3A
+#define MFGPT7_CNT			0x3C
+#define MFGPT7_SETUP			0x3E
+
+/* MSR_MFTPT_NR */
+#define MSR_MFGPT0_C2_RSTEN		(1 << 24)
+#define MSR_MFGPT0_C2_NMIM		(1 << 8)
+#define NMI_LEG				(1 << 16)
+
+/* MFGPTx_SETUP */
+#define MFGPT_CNT_EN			(1<<15)
+#define MFGPT_SETUP			(1<<12)
+#define MFGPT_STOP_EN			(1<<11)
+#define MFGPT_EXT_EN			(1<<10)
+
+#define MFGPT_CMPMODE_DISABLED		0x00
+#define MFGPT_CMPMODE_EQ		0x01
+#define MFGPT_CMPMODE_GE		0x02
+#define MFGPT_CMPMODE_EVENT		0x03
+
+#define MFGPT_CMP1MODE(mode)		((mode) << 6)
+#define MFGPT_CMP2MODE(mode)		((mode) << 8)
+
+#define MFGPT_REV_EN			(1<<5)
+
+#define MFGPT_CLKSEL_32K		0
+#define MFGPT_CLKSEL_14_318		(1<<4)
+
+#define MFGPT_SCALE_1			0x00
+#define MFGPT_SCALE_2			0x01
+#define MFGPT_SCALE_4			0x02
+#define MFGPT_SCALE_8			0x03
+#define MFGPT_SCALE_16			0x04
+#define MFGPT_SCALE_32			0x05
+#define MFGPT_SCALE_64			0x06
+#define MFGPT_SCALE_128			0x07
+#define MFGPT_SCALE_256			0x08
+#define MFGPT_SCALE_512			0x09
+#define MFGPT_SCALE_1024		0x0a
+#define MFGPT_SCALE_2048		0x0b
+#define MFGPT_SCALE_4096		0x0c
+#define MFGPT_SCALE_8192		0x0d
+#define MFGPT_SCALE_16384		0x0e
+#define MFGPT_SCALE_32768		0x0f
+/* PMC Specific MSRs */
+
+#define MSR_PMC_LTMR			0x51400050
+
+/* ACPI Registers */
+
+#define PM1_STS				0x00
+#define PM1_EN				0x02
+#define PM1_CNT				0x08
+#define PM2_CNT				0x0C
+#define PM_TMR				0x10
+#define PM_RSVD				0x14
+#define PM_GPE0_STS			0x18
+#define PM_GPE0_EN			0x1C
+
+/* PM Support Registers */
+
+#define PM_SSD				0x00
+#define PM_SCXA				0x04
+#define PM_SCYA				0x08
+#define PM_OUT_SLPCTL			0x0C
+#define PM_SCLK				0x10
+#define PM_SED				0x14
+#define PM_SCXD				0x18
+#define PM_SCYD				0x1C
+#define PM_IN_SLPCTL			0x20
+#define PM_RSVD				0x24
+#define PM_WKD				0x30
+#define PM_WKXD				0x34
+#define PM_RD				0x38
+#define PM_WKXA				0x3C
+#define PM_FSD				0x40
+#define PM_TSD				0x44
+#define PM_PSD				0x48
+#define PM_NWKD				0x4C
+#define PM_AWKD				0x50
+#define PM_SSC				0x54
+
+/* Flash Controller Specific MSRs */
+
+#define MSR_NORF_CTL			0x51400018
+#define MSR_NORTF_T01			0x51400019
+#define MSR_NORTF_T23			0x5140001A
+#define MSR_NANDF_DATA			0x5140001B
+#define MSR_NANDF_CTL			0x5140001C
+#define MSR_NANDF_RSVD			0x5140001D
+
+/* Standard GeodeLinkTM Device MSRs */
+
+#define MSR_GLCP_GLD_MSR_CAP		0x51700000
+#define MSR_GLCP_GLD_MSR_CONFIG		0x51700001
+#define MSR_GLCP_GLD_MSR_SMI		0x51700002
+#define MSR_GLCP_GLD_MSR_ERROR		0x51700003
+#define MSR_GLCP_GLD_MSR_PM		0x51700004
+#define MSR_GLCP_GLD_MSR_DIAG		0x51700005
+
+/* GLPC Specific MSRs */
+
+#define MSR_GLCP_CLK_DIS_DELAY		0x51700008
+#define MSR_GLCP_PMCLKDISABLE		0x51700009
+#define MSR_GLCP_GLB_PM			0x5170000B
+#define MSR_GLCP_DBGOUT			0x5170000C
+#define MSR_GLPC_RSVD			0x5170000D
+#define MSR_GLCP_DOWSER			0x5170000E
+#define MSR_GLPC_RSVD			0x5170000F
+#define MSR_GLCP_CLKOFF			0x51700010
+#define MSR_GLCP_CLKACTIVE		0x51700011
+#define MSR_GLCP_CLKDISABLE		0x51700012
+#define MSR_GLCP_CLK4ACK		0x51700013
+#define MSR_GLCP_SYS_RST		0x51700014
+#define MSR_GLPC_RSVD			0x51700015
+#define MSR_GLCP_DBGCLKCTL		0x51700016
+#define MSR_GLCP_CHIP_REV_ID		0x51700017
+
+#endif /* I386_I386_CS5536_H */
