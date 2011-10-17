@@ -896,7 +896,7 @@ ipmi_watchdog_rearm(device_t dev)
 	return error;
 }
 
-#ifdef IMPI_DEBUG
+#ifdef IPMI_DEBUG
 static void
 dump_buf(u_char *data, int len)
 {
