@@ -29,6 +29,11 @@
 #ifndef __IPMIVARS_H__
 #define	__IPMIVARS_H__
 
+#include <sys/lock.h>
+#include <sys/mutex.h>
+
+#include <dev/watchdog/watchdogvar.h>
+
 struct ipmi_get_info {
 	int		iface_type;
 	uint64_t	address;
@@ -104,7 +109,6 @@ struct ipmi_softc {
 	int			ipmi_opened;
 	struct cdev		*ipmi_cdev;
 	TAILQ_HEAD(,ipmi_request) ipmi_pending_requests;
-	eventhandler_tag	ipmi_watchdog_tag;
 	struct intr_config_hook	ipmi_ich;
 	struct mtx		ipmi_lock;
 	struct cv		ipmi_request_added;
@@ -245,6 +249,12 @@ int	ipmi_kcs_attach(struct ipmi_softc *);
 int	ipmi_kcs_probe_align(struct ipmi_softc *);
 int	ipmi_smic_attach(struct ipmi_softc *);
 int	ipmi_ssif_attach(struct ipmi_softc *, device_t, int);
+
+/* Watchdog interface */
+#define ipmi_watchdog_enable	ipmi_watchdog_rearm
+int ipmi_watchdog_disable(device_t);
+int ipmi_watchdog_configure(device_t, struct timespec *, watchdog_action_t);
+int ipmi_watchdog_rearm(device_t);
 
 #ifdef IPMB
 int	ipmi_handle_attn(struct ipmi_softc *);
