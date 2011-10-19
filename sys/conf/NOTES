@@ -2617,6 +2617,7 @@ options 	BOOTP_BLOCKSIZE=8192 # Override NFS block size
 # Add software watchdog routines.
 #
 options 	SW_WATCHDOG
+device		sw_watchdog
 
 #
 # Add the software deadlock resolver thread.

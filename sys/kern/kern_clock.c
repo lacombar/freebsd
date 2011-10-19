@@ -41,7 +41,7 @@ __FBSDID("$FreeBSD$");
 #include "opt_device_polling.h"
 #include "opt_hwpmc_hooks.h"
 #include "opt_ntp.h"
-#include "opt_watchdog.h"
+#include "opt_sw_watchdog.h"
 
 #include <sys/param.h>
 #include <sys/systm.h>
@@ -81,6 +81,10 @@ PMC_SOFT_DEFINE( , , clock, stat);
 #ifdef DEVICE_POLLING
 extern void hardclock_device_poll(void);
 #endif /* DEVICE_POLLING */
+
+#ifdef SW_WATCHDOG
+void (*sw_watchdog_poke_p)(int) = NULL;
+#endif
 
 static void initclocks(void *dummy);
 SYSINIT(clocks, SI_SUB_CLOCKS, SI_ORDER_FIRST, initclocks, NULL);
@@ -333,15 +337,6 @@ read_cpu_time(long *cp_time)
 	}
 }
 
-#ifdef SW_WATCHDOG
-#include <sys/watchdog.h>
-
-static int watchdog_ticks;
-static int watchdog_enabled;
-static void watchdog_fire(void);
-static void watchdog_config(void *, u_int, int *);
-#endif /* SW_WATCHDOG */
-
 /*
  * Clock handling routines.
  *
@@ -407,9 +402,6 @@ initclocks(dummy)
 	if (profhz == 0)
 		profhz = i;
 	psratio = profhz / i;
-#ifdef SW_WATCHDOG
-	EVENTHANDLER_REGISTER(watchdog_list, watchdog_config, NULL, 0);
-#endif
 }
 
 /*
@@ -481,8 +473,8 @@ hardclock(int usermode, uintfptr_t pc)
 	hardclock_device_poll();	/* this is very short and quick */
 #endif /* DEVICE_POLLING */
 #ifdef SW_WATCHDOG
-	if (watchdog_enabled > 0 && --watchdog_ticks <= 0)
-		watchdog_fire();
+	if (sw_watchdog_poke_p != NULL)
+		(*sw_watchdog_poke_p)(1);
 #endif /* SW_WATCHDOG */
 }
 
@@ -494,9 +486,6 @@ hardclock_cnt(int cnt, int usermode)
 	struct proc *p = td->td_proc;
 	int *t = DPCPU_PTR(pcputicks);
 	int flags, global, newticks;
-#ifdef SW_WATCHDOG
-	int i;
-#endif /* SW_WATCHDOG */
 
 	/*
 	 * Update per-CPU and possibly global ticks values.
@@ -557,11 +546,8 @@ hardclock_cnt(int cnt, int usermode)
 			atomic_store_rel_int(&global_hardclock_run, 0);
 		}
 #ifdef SW_WATCHDOG
-		if (watchdog_enabled > 0) {
-			i = atomic_fetchadd_int(&watchdog_ticks, -newticks);
-			if (i > 0 && i <= newticks)
-				watchdog_fire();
-		}
+		if (sw_watchdog_poke_p != NULL)
+			(*sw_watchdog_poke_p)(newticks);
 #endif /* SW_WATCHDOG */
 	}
 	if (curcpu == CPU_FIRST())
@@ -835,56 +821,3 @@ SYSCTL_PROC(_kern, KERN_CLOCKRATE, clockrate,
 	CTLTYPE_STRUCT|CTLFLAG_RD|CTLFLAG_MPSAFE,
 	0, 0, sysctl_kern_clockrate, "S,clockinfo",
 	"Rate and period of various kernel clocks");
-
-#ifdef SW_WATCHDOG
-
-static void
-watchdog_config(void *unused __unused, u_int cmd, int *error)
-{
-	u_int u;
-
-	u = cmd & WD_INTERVAL;
-	if (u >= WD_TO_1SEC) {
-		watchdog_ticks = (1 << (u - WD_TO_1SEC)) * hz;
-		watchdog_enabled = 1;
-		*error = 0;
-	} else {
-		watchdog_enabled = 0;
-	}
-}
-
-/*
- * Handle a watchdog timeout by dumping interrupt information and
- * then either dropping to DDB or panicking.
- */
-static void
-watchdog_fire(void)
-{
-	int nintr;
-	uint64_t inttotal;
-	u_long *curintr;
-	char *curname;
-
-	curintr = intrcnt;
-	curname = intrnames;
-	inttotal = 0;
-	nintr = sintrcnt / sizeof(u_long);
-
-	printf("interrupt                   total\n");
-	while (--nintr >= 0) {
-		if (*curintr)
-			printf("%-12s %20lu\n", curname, *curintr);
-		curname += strlen(curname) + 1;
-		inttotal += *curintr++;
-	}
-	printf("Total        %20ju\n", (uintmax_t)inttotal);
-
-#if defined(KDB) && !defined(KDB_UNATTENDED)
-	kdb_backtrace();
-	kdb_enter(KDB_WHY_WATCHDOG, "watchdog timeout");
-#else
-	panic("watchdog timeout");
-#endif
-}
-
-#endif /* SW_WATCHDOG */
