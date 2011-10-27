@@ -2197,7 +2197,6 @@ dev/vxge/vxgehal/vxgehal-driver.c	optional vxge
 dev/vxge/vxgehal/vxgehal-virtualpath.c	optional vxge
 dev/vxge/vxgehal/vxgehal-channel.c	optional vxge
 dev/vxge/vxgehal/vxgehal-fifo.c		optional vxge
-dev/watchdog/watchdog.c		standard
 dev/wb/if_wb.c			optional wb pci
 dev/wds/wd7000.c		optional wds isa
 dev/wi/if_wi.c			optional wi
@@ -2594,6 +2593,7 @@ kern/subr_trap.c		standard
 kern/subr_turnstile.c		standard
 kern/subr_uio.c			standard
 kern/subr_unit.c		standard
+kern/subr_watchdog.c		standard
 kern/subr_witness.c		optional witness
 kern/sys_capability.c		standard
 kern/sys_generic.c		standard
