@@ -92,23 +92,6 @@ wd_ioctl(struct cdev *dev __unused, u_long cmd, caddr_t data,
 	return (kern_do_pat(u));
 }
 
-u_int
-wdog_kern_last_timeout(void)
-{
-
-	return (wd_last_u);
-}
-
-int
-wdog_kern_pat(u_int utim)
-{
-
-	if (utim & ~(WD_LASTVAL | WD_INTERVAL))
-		return (EINVAL);
-
-	return (kern_do_pat(utim));
-}
-
 static struct cdevsw wd_cdevsw = {
 	.d_version =	D_VERSION,
 	.d_ioctl =	wd_ioctl,

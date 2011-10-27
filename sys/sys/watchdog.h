@@ -85,8 +85,6 @@ typedef void (*watchdog_fn)(void *, u_int, int *);
 
 EVENTHANDLER_DECLARE(watchdog_list, watchdog_fn);
 
-u_int	wdog_kern_last_timeout(void);
-int	wdog_kern_pat(u_int utim);
 #endif
 
 #endif /* _SYS_WATCHDOG_H */
