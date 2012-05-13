@@ -45,7 +45,7 @@
 
 static int RmHookCmd(int ac, char **av);
 
-const struct ngcmd rmhook_cmd = {
+static const struct ngcmd rmhook_cmd = {
 	RmHookCmd,
 	"rmhook [path] <hook>",
 	"Disconnect hook \"hook\" of the node at \"path\"",
@@ -84,3 +84,9 @@ RmHookCmd(int ac, char **av)
 	return (CMDRTN_OK);
 }
 
+static __constructor void
+RmHookCtor(void)
+{
+
+	RegisterCommand(&rmhook_cmd);
+}

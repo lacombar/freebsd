@@ -48,7 +48,7 @@
 
 static int StatusCmd(int ac, char **av);
 
-const struct ngcmd status_cmd = {
+static const struct ngcmd status_cmd = {
 	StatusCmd,
 	"status <path>",
 	"Get human readable status information from the node at <path>",
@@ -99,3 +99,9 @@ StatusCmd(int ac, char **av)
 	return (CMDRTN_OK);
 }
 
+static __constructor void
+StatusCtor(void)
+{
+
+	RegisterCommand(&status_cmd);
+}

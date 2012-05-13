@@ -51,7 +51,7 @@
 
 static int ShowCmd(int ac, char **av);
 
-const struct ngcmd show_cmd = {
+static const struct ngcmd show_cmd = {
 	ShowCmd,
 	"show [-n] <path>",
 	"Show information about the node at <path>",
@@ -136,4 +136,9 @@ ShowCmd(int ac, char **av)
 	return (CMDRTN_OK);
 }
 
+static __constructor void
+ShowCtor(void)
+{
 
+	RegisterCommand(&show_cmd);
+}

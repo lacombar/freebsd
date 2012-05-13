@@ -47,7 +47,7 @@
 
 static int TypesCmd(int ac, char **av);
 
-const struct ngcmd types_cmd = {
+static const struct ngcmd types_cmd = {
 	TypesCmd,
 	"types",
 	"Show information about all installed node types",
@@ -99,3 +99,9 @@ TypesCmd(int ac, char **av __unused)
 	return (rtn);
 }
 
+static __constructor void
+TypesCtor(void)
+{
+
+	RegisterCommand(&types_cmd);
+}

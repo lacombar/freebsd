@@ -49,7 +49,7 @@
 
 static int ListCmd(int ac, char **av);
 
-const struct ngcmd list_cmd = {
+static const struct ngcmd list_cmd = {
 	ListCmd,
 	"list [-ln]",
 	"Show information about all nodes",
@@ -121,7 +121,8 @@ ListCmd(int ac, char **av)
 		while (nlist->numnames > 0) {
 			snprintf(path, sizeof(path),
 			    "[%lx]:", (u_long)ninfo->id);
-			if ((rtn = (*show_cmd.func)(2, argv)) != CMDRTN_OK)
+			rtn = DoCommand(2, argv);
+			if (rtn != CMDRTN_OK)
 				break;
 			ninfo++;
 			nlist->numnames--;
@@ -144,3 +145,9 @@ ListCmd(int ac, char **av)
 	return (rtn);
 }
 
+static __constructor void
+ListCtor(void)
+{
+
+	RegisterCommand(&list_cmd);
+}

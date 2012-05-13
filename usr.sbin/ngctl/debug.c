@@ -46,7 +46,7 @@
 
 static int DebugCmd(int ac, char **av);
 
-const struct ngcmd debug_cmd = {
+static const struct ngcmd debug_cmd = {
 	DebugCmd,
 	"debug [level]",
 	"Get/set debugging verbosity level",
@@ -82,3 +82,9 @@ DebugCmd(int ac, char **av)
 	return (CMDRTN_OK);
 }
 
+static __constructor void
+DebugCtor(void)
+{
+
+	RegisterCommand(&debug_cmd);
+}

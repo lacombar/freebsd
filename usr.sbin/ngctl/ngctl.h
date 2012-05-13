@@ -37,6 +37,8 @@
  * $FreeBSD$
  */
 
+#define __constructor   __attribute__((constructor))
+
 #define MAX_CMD_ALIAS	8
 
 /* Command descriptors */
@@ -54,24 +56,10 @@ struct ngcmd {
 #define CMDRTN_ERROR		2
 #define CMDRTN_QUIT		3
 
-/* Available commands */
-extern const struct ngcmd config_cmd;
-extern const struct ngcmd connect_cmd;
-extern const struct ngcmd debug_cmd;
-extern const struct ngcmd dot_cmd;
-extern const struct ngcmd help_cmd;
-extern const struct ngcmd list_cmd;
-extern const struct ngcmd mkpeer_cmd;
-extern const struct ngcmd msg_cmd;
-extern const struct ngcmd name_cmd;
-extern const struct ngcmd read_cmd;
-extern const struct ngcmd rmhook_cmd;
-extern const struct ngcmd show_cmd;
-extern const struct ngcmd shutdown_cmd;
-extern const struct ngcmd status_cmd;
-extern const struct ngcmd types_cmd;
-extern const struct ngcmd write_cmd;
-extern const struct ngcmd quit_cmd;
+int DoCommand(int ac, char **av);
+
+/* Command registration */
+int RegisterCommand(const struct ngcmd *cmd);
 
 /* Data and control sockets */
 extern int	csock, dsock;
