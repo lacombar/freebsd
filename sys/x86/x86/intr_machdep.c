@@ -70,7 +70,7 @@
 #endif
 #endif
 
-#define	MAX_STRAY_LOG	5
+#define	MAX_STRAY_LOG	0
 
 typedef void (*mask_fn)(void *);
 

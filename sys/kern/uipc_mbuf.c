@@ -336,7 +336,7 @@ m_sanity(struct mbuf *m0, int sanitize)
 #ifdef INVARIANTS
 #define	M_SANITY_ACTION(s)	panic("mbuf %p: " s, m)
 #else 
-#define	M_SANITY_ACTION(s)	printf("mbuf %p: " s, m)
+#define	M_SANITY_ACTION(s)	printf("mbuf %p: " s "\n", m)
 #endif
 
 	for (m = m0; m != NULL; m = m->m_next) {

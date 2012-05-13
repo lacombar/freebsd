@@ -848,7 +848,7 @@ malloc_uninit(void *data)
 	mtx_unlock(&malloc_mtx);
 
 	/*
-	 * Look for memory leaks.
+	 * Look for memory leaks and bad accounting.
 	 */
 	temp_allocs = temp_bytes = 0;
 	for (i = 0; i < MAXCPU; i++) {
@@ -858,9 +858,9 @@ malloc_uninit(void *data)
 		temp_bytes += mtsp->mts_memalloced;
 		temp_bytes -= mtsp->mts_memfreed;
 	}
-	if (temp_allocs > 0 || temp_bytes > 0) {
-		printf("Warning: memory type %s leaked memory on destroy "
-		    "(%ld allocations, %ld bytes leaked).\n", mtp->ks_shortdesc,
+	if (temp_allocs != 0 || temp_bytes != 0) {
+		printf("Warning: statistics for memory type %s does not balance "
+		    "(%ld allocations, %ld bytes).\n", mtp->ks_shortdesc,
 		    temp_allocs, temp_bytes);
 	}
 
