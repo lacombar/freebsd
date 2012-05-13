@@ -16,7 +16,7 @@ REL1=	0x700
 ORG1=	0x7c00
 ORG2=	0x0
 
-CFLAGS=	-DBOOTPROG=\"gptzfsboot\" \
+CFLAGS+=-DBOOTPROG=\"gptzfsboot\" \
 	-O1 \
 	-DGPT -DBOOT2 \
 	-DSIOPRT=${BOOT_COMCONSOLE_PORT} \

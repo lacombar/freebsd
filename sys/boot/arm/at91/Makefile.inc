@@ -8,7 +8,7 @@ __at91_boot_Makefile.inc__:
 # tsc, bwct, kb920x, centipad are the supported flavors
 BOOT_FLAVOR?=kb920x
 
-CFLAGS=-Os -mcpu=arm9 -ffreestanding \
+CFLAGS+=-Os -mcpu=arm9 -ffreestanding \
 	-I${.CURDIR}/../libat91 \
 	-I${.CURDIR}/../../../.. \
 	-I${.CURDIR}/../../../../arm \

@@ -7,7 +7,7 @@ BINDIR=	${LIBDIR}
 NO_MAN=
 
 SRCS=	start.s boot.c inflate.c lib.c crt.s sio.s
-CFLAGS=	-Os
+CFLAGS+=-Os
 CFLAGS+=-DKZIP
 NO_SHARED=
 LDFLAGS=-Wl,-r
