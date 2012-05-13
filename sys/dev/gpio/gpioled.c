@@ -50,15 +50,12 @@ __FBSDID("$FreeBSD$");
 
 #define GPIOLED_LOCK(_sc)		mtx_lock(&(_sc)->sc_mtx)
 #define	GPIOLED_UNLOCK(_sc)		mtx_unlock(&(_sc)->sc_mtx)
-#define GPIOLED_LOCK_INIT(_sc) \
-	mtx_init(&_sc->sc_mtx, device_get_nameunit(_sc->sc_dev), \
-	    "gpioled", MTX_DEF)
+#define GPIOLED_LOCK_INIT(_sc, dev) \
+	mtx_init(&_sc->sc_mtx, device_get_nameunit(dev), "gpioled", MTX_DEF)
 #define GPIOLED_LOCK_DESTROY(_sc)	mtx_destroy(&_sc->sc_mtx);
 
 struct gpioled_softc 
 {
-	device_t	sc_dev;
-	device_t	sc_busdev;
 	struct mtx	sc_mtx;
 	struct cdev	*sc_leddev;
 };
@@ -71,14 +68,17 @@ static int gpioled_detach(device_t);
 static void 
 gpioled_control(void *priv, int onoff)
 {
-	struct gpioled_softc *sc = priv;
+	device_t dev = priv;
+	device_t parent = device_get_parent(dev);
+	struct gpioled_softc *sc = device_get_softc(dev);
+
 	GPIOLED_LOCK(sc);
-	GPIOBUS_LOCK_BUS(sc->sc_busdev);
-	GPIOBUS_ACQUIRE_BUS(sc->sc_busdev, sc->sc_dev);
-	GPIOBUS_PIN_SET(sc->sc_busdev, sc->sc_dev, GPIOLED_PIN, 
+	GPIOBUS_LOCK_BUS(parent);
+	GPIOBUS_ACQUIRE_BUS(parent, dev);
+	GPIOBUS_PIN_SET(parent, dev, GPIOLED_PIN,
 	    onoff ? GPIO_PIN_HIGH : GPIO_PIN_LOW);
-	GPIOBUS_RELEASE_BUS(sc->sc_busdev, sc->sc_dev);
-	GPIOBUS_UNLOCK_BUS(sc->sc_busdev);
+	GPIOBUS_RELEASE_BUS(parent, dev);
+	GPIOBUS_UNLOCK_BUS(parent);
 	GPIOLED_UNLOCK(sc);
 }
 
@@ -92,22 +92,20 @@ gpioled_probe(device_t dev)
 static int
 gpioled_attach(device_t dev)
 {
+	device_t parent = device_get_parent(dev);
 	struct gpioled_softc *sc;
 	const char *name;
 
 	sc = device_get_softc(dev);
-	sc->sc_dev = dev;
-	sc->sc_busdev = device_get_parent(dev);
-	GPIOLED_LOCK_INIT(sc);
+	GPIOLED_LOCK_INIT(sc, dev);
+
 	if (resource_string_value(device_get_name(dev), 
 	    device_get_unit(dev), "name", &name))
-		name = NULL;
+		name = device_get_nameunit(dev);
 
-	GPIOBUS_PIN_SETFLAGS(sc->sc_busdev, sc->sc_dev, GPIOLED_PIN,
-	    GPIO_PIN_OUTPUT);
+	GPIOBUS_PIN_SETFLAGS(parent, dev, GPIOLED_PIN, GPIO_PIN_OUTPUT);
 
-	sc->sc_leddev = led_create(gpioled_control, sc, name ? name :
-	    device_get_nameunit(dev));
+	sc->sc_leddev = led_create(gpioled_control, dev, name);
 
 	return (0);
 }

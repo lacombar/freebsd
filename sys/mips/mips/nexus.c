@@ -83,6 +83,7 @@ static struct resource *
 static int	nexus_activate_resource(device_t, device_t, int, int,
 		    struct resource *);
 static device_t	nexus_add_child(device_t, u_int, const char *, int);
+static void	nexus_child_detached(device_t, device_t);
 static int	nexus_attach(device_t);
 static int	nexus_deactivate_resource(device_t, device_t, int, int,
 		    struct resource *);
@@ -112,6 +113,7 @@ static device_method_t nexus_methods[] = {
 
 	/* Bus interface */
 	DEVMETHOD(bus_add_child,	nexus_add_child),
+	DEVMETHOD(bus_child_detached,	nexus_child_detached),
 	DEVMETHOD(bus_activate_resource,nexus_activate_resource),
 	DEVMETHOD(bus_alloc_resource,	nexus_alloc_resource),
 	DEVMETHOD(bus_deactivate_resource,	nexus_deactivate_resource),
@@ -292,19 +294,32 @@ nexus_add_child(device_t bus, u_int order, const char *name, int unit)
 
 	ndev = malloc(sizeof(struct nexus_device), M_NEXUSDEV, M_NOWAIT|M_ZERO);
 	if (!ndev)
-		return (0);
+		goto fail;
+
 	resource_list_init(&ndev->nx_resources);
 
 	child = device_add_child_ordered(bus, order, name, unit);
-	if (child == NULL) {
-		device_printf(bus, "failed to add child: %s%d\n", name, unit);
-		return (0);
-	}
+	if (child == NULL)
+		goto fail1;
 
-	/* should we free this in nexus_child_detached? */
 	device_set_ivars(child, ndev);
 
-	return (child);
+	return(child);
+fail1:
+	free(ndev, M_NEXUSDEV);
+fail:
+	return (NULL);
+}
+
+static void
+nexus_child_detached(device_t bus, device_t child)
+{
+	struct nexus_device *ndev = DEVTONX(child);
+
+	resource_list_free(&ndev->nx_resources);
+
+	device_set_ivars(child, NULL);
+	free(ndev, M_NEXUSDEV);
 }
 
 /*

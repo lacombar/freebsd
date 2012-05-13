@@ -51,8 +51,6 @@ static int gpiobus_parse_pins(struct gpiobus_softc *, device_t, int);
 static int gpiobus_probe(device_t);
 static int gpiobus_attach(device_t);
 static int gpiobus_detach(device_t);
-static int gpiobus_suspend(device_t);
-static int gpiobus_resume(device_t);
 static int gpiobus_print_child(device_t, device_t);
 static int gpiobus_child_location_str(device_t, device_t, char *, size_t);
 static int gpiobus_child_pnpinfo_str(device_t, device_t, char *, size_t);
@@ -237,20 +235,6 @@ gpiobus_detach(device_t dev)
 	}
 
 	return (0);
-}
-
-static int
-gpiobus_suspend(device_t dev)
-{
-
-	return (bus_generic_suspend(dev));
-}
-
-static int
-gpiobus_resume(device_t dev)
-{
-
-	return (bus_generic_resume(dev));
 }
 
 static int
@@ -452,8 +436,8 @@ static device_method_t gpiobus_methods[] = {
 	DEVMETHOD(device_attach,	gpiobus_attach),
 	DEVMETHOD(device_detach,	gpiobus_detach),
 	DEVMETHOD(device_shutdown,	bus_generic_shutdown),
-	DEVMETHOD(device_suspend,	gpiobus_suspend),
-	DEVMETHOD(device_resume,	gpiobus_resume),
+	DEVMETHOD(device_suspend,	bus_generic_suspend),
+	DEVMETHOD(device_resume,	bus_generic_resume),
 
 	/* Bus interface */
 	DEVMETHOD(bus_add_child,	gpiobus_add_child),
