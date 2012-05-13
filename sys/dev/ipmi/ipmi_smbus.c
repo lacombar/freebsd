@@ -31,9 +31,10 @@ __FBSDID("$FreeBSD$");
 #include <sys/systm.h>
 #include <sys/bus.h>
 #include <sys/condvar.h>
-#include <sys/eventhandler.h>
 #include <sys/kernel.h>
+#include <sys/lock.h>
 #include <sys/module.h>
+#include <sys/mutex.h>
 #include <sys/rman.h>
 #include <sys/selinfo.h>
 
@@ -48,6 +49,8 @@ __FBSDID("$FreeBSD$");
 #else
 #include <dev/ipmi/ipmivars.h>
 #endif
+
+#include "watchdog_if.h"
 
 static void ipmi_smbus_identify(driver_t *driver, device_t parent);
 static int ipmi_smbus_probe(device_t dev);
@@ -118,6 +121,13 @@ static device_method_t ipmi_methods[] = {
 	DEVMETHOD(device_probe,		ipmi_smbus_probe),
 	DEVMETHOD(device_attach,	ipmi_smbus_attach),
 	DEVMETHOD(device_detach,	ipmi_detach),
+
+	/* Watchdog interface */
+	DEVMETHOD(watchdog_enable,	ipmi_watchdog_enable),
+	DEVMETHOD(watchdog_disable,	ipmi_watchdog_disable),
+	DEVMETHOD(watchdog_configure,	ipmi_watchdog_configure),
+	DEVMETHOD(watchdog_rearm,	ipmi_watchdog_rearm),
+
 	{ 0, 0 }
 };
 

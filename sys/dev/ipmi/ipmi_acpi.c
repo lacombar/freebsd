@@ -52,6 +52,8 @@ ACPI_MODULE_NAME("IPMI")
 #include <dev/ipmi/ipmivars.h>
 #endif
 
+#include "watchdog_if.h"
+
 static int ipmi_acpi_probe(device_t);
 static int ipmi_acpi_attach(device_t);
 
@@ -198,6 +200,13 @@ static device_method_t ipmi_methods[] = {
 	DEVMETHOD(device_probe,		ipmi_acpi_probe),
 	DEVMETHOD(device_attach,	ipmi_acpi_attach),
 	DEVMETHOD(device_detach,	ipmi_detach),
+
+	/* Watchdog interface */
+	DEVMETHOD(watchdog_enable,	ipmi_watchdog_enable),
+	DEVMETHOD(watchdog_disable,	ipmi_watchdog_disable),
+	DEVMETHOD(watchdog_configure,	ipmi_watchdog_configure),
+	DEVMETHOD(watchdog_rearm,	ipmi_watchdog_rearm),
+
 	{ 0, 0 }
 };
 
@@ -209,3 +218,4 @@ static driver_t ipmi_acpi_driver = {
 
 DRIVER_MODULE(ipmi_acpi, acpi, ipmi_acpi_driver, ipmi_devclass, 0, 0);
 MODULE_DEPEND(ipmi_acpi, acpi, 1, 1, 1);
+DRIVER_MODULE(watchdog, ipmi_acpi, watchdog_driver, watchdog_devclass, 0, 0);

@@ -185,7 +185,7 @@ SHMSEG		opt_sysvipc.h
 SYSVMSG		opt_sysvipc.h
 SYSVSEM		opt_sysvipc.h
 SYSVSHM		opt_sysvipc.h
-SW_WATCHDOG	opt_watchdog.h
+SW_WATCHDOG	opt_sw_watchdog.h
 TURNSTILE_PROFILING
 UMTX_PROFILING
 VFS_AIO

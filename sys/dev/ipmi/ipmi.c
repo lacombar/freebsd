@@ -32,6 +32,7 @@ __FBSDID("$FreeBSD$");
 #include <sys/bus.h>
 #include <sys/condvar.h>
 #include <sys/conf.h>
+#include <sys/ioccom.h>
 #include <sys/kernel.h>
 #include <sys/malloc.h>
 #include <sys/module.h>
@@ -39,7 +40,6 @@ __FBSDID("$FreeBSD$");
 #include <sys/rman.h>
 #include <sys/selinfo.h>
 #include <sys/sysctl.h>
-#include <sys/watchdog.h>
 
 #ifdef LOCAL_MODULE
 #include <ipmi.h>
@@ -61,6 +61,14 @@ static d_open_t ipmi_open;
 static void ipmi_dtor(void *arg);
 
 int ipmi_attached = 0;
+
+static struct watchdog_ivars ipmi_watchdog_ivars =
+{
+	.wi_step    = WATCHDOG_TIMEVAL_STEP(0, 100000),
+	.wi_nstep   = 0xffff,
+	.wi_actions = WATCHDOG_ACTION_RESET
+
+};
 
 static int on = 1;
 static SYSCTL_NODE(_hw, OID_AUTO, ipmi, CTLFLAG_RD, 0,
@@ -585,85 +593,6 @@ ipmi_polled_enqueue_request(struct ipmi_softc *sc, struct ipmi_request *req)
 	return (0);
 }
 
-/*
- * Watchdog event handler.
- */
-
-static int
-ipmi_set_watchdog(struct ipmi_softc *sc, unsigned int sec)
-{
-	struct ipmi_request *req;
-	int error;
-
-	if (sec > 0xffff / 10)
-		return (EINVAL);
-
-	req = ipmi_alloc_driver_request(IPMI_ADDR(IPMI_APP_REQUEST, 0),
-	    IPMI_SET_WDOG, 6, 0);
-
-	if (sec) {
-		req->ir_request[0] = IPMI_SET_WD_TIMER_DONT_STOP
-		    | IPMI_SET_WD_TIMER_SMS_OS;
-		req->ir_request[1] = IPMI_SET_WD_ACTION_RESET;
-		req->ir_request[2] = 0;
-		req->ir_request[3] = 0;	/* Timer use */
-		req->ir_request[4] = (sec * 10) & 0xff;
-		req->ir_request[5] = (sec * 10) >> 8;
-	} else {
-		req->ir_request[0] = IPMI_SET_WD_TIMER_SMS_OS;
-		req->ir_request[1] = 0;
-		req->ir_request[2] = 0;
-		req->ir_request[3] = 0;	/* Timer use */
-		req->ir_request[4] = 0;
-		req->ir_request[5] = 0;
-	}
-
-	error = ipmi_submit_driver_request(sc, req, 0);
-	if (error)
-		device_printf(sc->ipmi_dev, "Failed to set watchdog\n");
-	else if (sec) {
-		ipmi_free_request(req);
-
-		req = ipmi_alloc_driver_request(IPMI_ADDR(IPMI_APP_REQUEST, 0),
-		    IPMI_RESET_WDOG, 0, 0);
-
-		error = ipmi_submit_driver_request(sc, req, 0);
-		if (error)
-			device_printf(sc->ipmi_dev,
-			    "Failed to reset watchdog\n");
-	}
-
-	ipmi_free_request(req);
-	return (error);
-	/*
-	dump_watchdog(sc);
-	*/
-}
-
-static void
-ipmi_wd_event(void *arg, unsigned int cmd, int *error)
-{
-	struct ipmi_softc *sc = arg;
-	unsigned int timeout;
-	int e;
-
-	cmd &= WD_INTERVAL;
-	if (cmd > 0 && cmd <= 63) {
-		timeout = ((uint64_t)1 << cmd) / 1000000000;
-		if (timeout == 0)
-			timeout = 1;
-		e = ipmi_set_watchdog(sc, timeout);
-		if (e == 0)
-			*error = 0;
-		else
-			(void)ipmi_set_watchdog(sc, 0);
-	} else {
-		e = ipmi_set_watchdog(sc, 0);
-		if (e != 0 && cmd == 0)
-			*error = EOPNOTSUPP;
-	}
-}
-
 static void
 ipmi_startup(void *arg)
 {
@@ -758,10 +687,14 @@ ipmi_startup(void *arg)
 	ipmi_submit_driver_request(sc, req, 0);
 
 	if (req->ir_compcode == 0x00) {
-		device_printf(dev, "Attached watchdog\n");
-		/* register the watchdog event handler */
-		sc->ipmi_watchdog_tag = EVENTHANDLER_REGISTER(watchdog_list,
-		    ipmi_wd_event, sc, 0);
+		device_t child;
+
+		child = device_add_child(sc->ipmi_dev, "watchdog", -1);
+		if (child == NULL) {
+			device_printf(sc->ipmi_dev, "unable to add watchdog\n");
+		} else {
+			device_set_ivars(child, &ipmi_watchdog_ivars);
+		}
 	}
 	ipmi_free_request(req);
 
@@ -798,7 +731,7 @@ ipmi_attach(device_t dev)
 	}
 
 	ipmi_attached = 1;
-	return (0);
+	return bus_generic_attach(dev);
 }
 
 int
@@ -815,14 +748,11 @@ ipmi_detach(device_t dev)
 		return (EBUSY);
 	}
 	IPMI_UNLOCK(sc);
+
+	bus_generic_detach(dev);
+
 	if (sc->ipmi_cdev)
 		destroy_dev(sc->ipmi_cdev);
-
-	/* Detach from watchdog handling and turn off watchdog. */
-	if (sc->ipmi_watchdog_tag) {
-		EVENTHANDLER_DEREGISTER(watchdog_list, sc->ipmi_watchdog_tag);
-		ipmi_set_watchdog(sc, 0);
-	}
 
 	/* XXX: should use shutdown callout I think. */
 	/* If the backend uses a kthread, shut it down. */
@@ -876,6 +806,95 @@ ipmi_unload(void *arg)
 	free(devs, M_TEMP);
 }
 SYSUNINIT(ipmi_unload, SI_SUB_DRIVERS, SI_ORDER_FIRST, ipmi_unload, NULL);
+
+/*
+ * Watchdog interface
+ */
+int
+ipmi_watchdog_disable(device_t dev)
+{
+	struct ipmi_softc *sc = device_get_softc(dev);
+	struct ipmi_request *req;
+	int error;
+
+	device_printf(dev, "- %s -\n", __func__);
+
+	req = ipmi_alloc_driver_request(IPMI_ADDR(IPMI_APP_REQUEST, 0),
+	    IPMI_SET_WDOG, 6, 0);
+
+	req->ir_request[0] = IPMI_SET_WD_TIMER_SMS_OS;
+
+	error = ipmi_submit_driver_request(sc, req, 0);
+	if (error)
+		device_printf(dev, "failed to disable watchdog\n");
+
+	ipmi_free_request(req);
+
+	return error;
+}
+
+int
+ipmi_watchdog_configure(device_t dev, struct timespec *ts,
+    watchdog_action_t action)
+{
+	struct ipmi_softc *sc = device_get_softc(dev);
+	struct ipmi_request *req;
+	uint8_t wd_action;
+	int count, error;
+
+	device_printf(dev, "- %s -\n", __func__);
+
+	switch (action) {
+	case WATCHDOG_ACTION_RESET:
+		wd_action = IPMI_SET_WD_ACTION_RESET;
+		break;
+	default:
+		error = EINVAL;
+		goto out;
+	}
+
+	count = ts->tv_sec * 10;
+
+	req = ipmi_alloc_driver_request(IPMI_ADDR(IPMI_APP_REQUEST, 0),
+	    IPMI_SET_WDOG, 6, 0);
+
+	req->ir_request[0] = IPMI_SET_WD_TIMER_SMS_OS;	/* Timer Use */
+	req->ir_request[1] = wd_action;			/* Timer actions */
+	req->ir_request[2] = 0;			/* Pre-timeout interval */
+	req->ir_request[3] = 0;			/* Timer Use Expiration flags clear */
+	req->ir_request[4] = count & 0xff;	/* Initial countdown value, LSB */
+	req->ir_request[5] = count >> 8;	/* Initial countdown value, MSB */
+
+	error = ipmi_submit_driver_request(sc, req, 0);
+	if (error)
+		device_printf(sc->ipmi_dev, "failed to set watchdog\n");
+
+	ipmi_free_request(req);
+
+out:
+	return error;
+}
+
+int
+ipmi_watchdog_rearm(device_t dev)
+{
+	struct ipmi_softc *sc = device_get_softc(dev);
+	struct ipmi_request *req;
+	int error;
+
+	device_printf(dev, "- %s -\n", __func__);
+
+	req = ipmi_alloc_driver_request(IPMI_ADDR(IPMI_APP_REQUEST, 0),
+	    IPMI_RESET_WDOG, 0, 0);
+
+	error = ipmi_submit_driver_request(sc, req, 0);
+	if (error)
+		device_printf(dev, "failed to reset watchdog\n");
+
+	ipmi_free_request(req);
+
+	return error;
+}
 
 #ifdef IMPI_DEBUG
 static void

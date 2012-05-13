@@ -31,7 +31,6 @@ __FBSDID("$FreeBSD$");
 #include <sys/systm.h>
 #include <sys/bus.h>
 #include <sys/condvar.h>
-#include <sys/eventhandler.h>
 #include <sys/kernel.h>
 #include <sys/module.h>
 #include <sys/rman.h>
@@ -49,6 +48,8 @@ __FBSDID("$FreeBSD$");
 #include <sys/ipmi.h>
 #include <dev/ipmi/ipmivars.h>
 #endif
+
+#include "watchdog_if.h"
 
 static void
 ipmi_isa_identify(driver_t *driver, device_t parent)
@@ -262,7 +263,7 @@ ipmi_isa_attach(device_t dev)
 	if (error)
 		goto bad;
 
-	return (0);
+	return 0;
 bad:
 	ipmi_release_resources(dev);
 	return (error);
@@ -274,6 +275,13 @@ static device_method_t ipmi_methods[] = {
 	DEVMETHOD(device_probe,		ipmi_isa_probe),
 	DEVMETHOD(device_attach,	ipmi_isa_attach),
 	DEVMETHOD(device_detach,	ipmi_detach),
+
+	/* Watchdog interface */
+	DEVMETHOD(watchdog_enable,	ipmi_watchdog_enable),
+	DEVMETHOD(watchdog_disable,	ipmi_watchdog_disable),
+	DEVMETHOD(watchdog_configure,	ipmi_watchdog_configure),
+	DEVMETHOD(watchdog_rearm,	ipmi_watchdog_rearm),
+
 	{ 0, 0 }
 };
 
@@ -284,3 +292,4 @@ static driver_t ipmi_isa_driver = {
 };
 
 DRIVER_MODULE(ipmi_isa, isa, ipmi_isa_driver, ipmi_devclass, 0, 0);
+DRIVER_MODULE(watchdog, ipmi_isa, watchdog_driver, watchdog_devclass, 0, 0);
