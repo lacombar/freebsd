@@ -559,6 +559,7 @@ buildenv:
 TOOLCHAIN_TGTS=	${WMAKE_TGTS:N_depend:Neverything:Nbuild32}
 toolchain: ${TOOLCHAIN_TGTS}
 kernel-toolchain: ${TOOLCHAIN_TGTS:N_includes:N_libraries}
+.ORDER: kernel-toolchain buildkernel
 
 #
 # installcheck

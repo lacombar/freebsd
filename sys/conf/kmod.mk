@@ -120,6 +120,9 @@ CFLAGS+=	-fno-common
 LDFLAGS+=	-d -warn-common
 
 CFLAGS+=	${DEBUG_FLAGS}
+.if !empty(CFLAGS:M-O[23s]) && empty(CFLAGS:M-fno-strict-aliasing)
+CFLAGS+=	-fno-strict-aliasing
+.endif
 .if ${MACHINE_CPUARCH} == amd64
 CFLAGS+=	-fno-omit-frame-pointer
 .endif
@@ -286,7 +289,7 @@ _kmodinstall:
 .if defined(DEBUG_FLAGS) && !defined(INSTALL_NODEBUG) && \
     (defined(MK_KERNEL_SYMBOLS) && ${MK_KERNEL_SYMBOLS} != "no")
 	${INSTALL} -o ${KMODOWN} -g ${KMODGRP} -m ${KMODMODE} \
-	    ${_INSTALLFLAGS} ${PROG}.symbols ${DESTDIR}${KMODDIR}
+	    ${_INSTALLFLAGS} ${PROG}.symbols ${DESTDIR}${KMODDIR_SYMBOLS}
 .endif
 
 .include <bsd.links.mk>

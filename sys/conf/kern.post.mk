@@ -241,7 +241,8 @@ kernel-install:
 	${INSTALL} -p -m 555 -o ${KMODOWN} -g ${KMODGRP} ${KERNEL_KO} ${DESTDIR}${KODIR}
 .if defined(DEBUG) && !defined(INSTALL_NODEBUG) && \
     (defined(MK_KERNEL_SYMBOLS) && ${MK_KERNEL_SYMBOLS} != "no")
-	${INSTALL} -p -m 555 -o ${KMODOWN} -g ${KMODGRP} ${KERNEL_KO}.symbols ${DESTDIR}${KODIR}
+	mkdir -p ${DESTDIR}${KODIR_SYMBOLS}
+	${INSTALL} -p -m 555 -o ${KMODOWN} -g ${KMODGRP} ${KERNEL_KO}.symbols ${DESTDIR}${KODIR_SYMBOLS}
 .endif
 .if defined(KERNEL_EXTRA_INSTALL)
 	${INSTALL} -p -m 555 -o ${KMODOWN} -g ${KMODGRP} ${KERNEL_EXTRA_INSTALL} ${DESTDIR}${KODIR}
@@ -254,7 +255,8 @@ kernel-reinstall:
 	${INSTALL} -p -m 555 -o ${KMODOWN} -g ${KMODGRP} ${KERNEL_KO} ${DESTDIR}${KODIR}
 .if defined(DEBUG) && !defined(INSTALL_NODEBUG) && \
     (defined(MK_KERNEL_SYMBOLS) && ${MK_KERNEL_SYMBOLS} != "no")
-	${INSTALL} -p -m 555 -o ${KMODOWN} -g ${KMODGRP} ${KERNEL_KO}.symbols ${DESTDIR}${KODIR}
+	mkdir -p ${DESTDIR}/${KODIR_SYMBOLS}
+	${INSTALL} -p -m 555 -o ${KMODOWN} -g ${KMODGRP} ${KERNEL_KO}.symbols ${DESTDIR}${KODIR_SYMBOLS}
 .endif
 
 config.o env.o hints.o vers.o vnode_if.o:
