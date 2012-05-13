@@ -143,7 +143,7 @@ static MALLOC_DEFINE(M_BUS_SC, "bus-sc", "Bus data structures, softc");
 
 #ifdef BUS_DEBUG
 
-static int bus_debug = 1;
+static int bus_debug = 0;
 TUNABLE_INT("bus.debug", &bus_debug);
 SYSCTL_INT(_debug, OID_AUTO, bus_debug, CTLFLAG_RW, &bus_debug, 0,
     "Debug bus code");
@@ -1811,6 +1811,13 @@ device_add_child_ordered(device_t dev, u_int order, const char *name, int unit)
 	PDEBUG(("%s at %s with order %u as unit %d",
 	    name, DEVICENAME(dev), order, unit));
 
+	if ((name != NULL && unit != -1) && resource_disabled(name, unit)) {
+		if (bootverbose && device_get_name(dev) != NULL)
+			printf("%s%d: not added (disabled)\n", name, unit);
+
+		return NULL;
+	}
+
 	child = make_device(dev, name, unit);
 	if (child == NULL)
 		return (child);
@@ -2506,7 +2513,8 @@ device_unbusy(device_t dev)
 void
 device_quiet(device_t dev)
 {
-	dev->flags |= DF_QUIET;
+	if (bootverbose < 2)
+		dev->flags |= DF_QUIET;
 }
 
 /**

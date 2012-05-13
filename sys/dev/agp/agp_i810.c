@@ -256,8 +256,6 @@ agp_i810_probe(device_t dev)
 	u_int8_t smram;
 	int gcc1, deven;
 
-	if (resource_disabled("agp", device_get_unit(dev)))
-		return (ENXIO);
 	match = agp_i810_match(dev);
 	if (match == NULL)
 		return ENXIO;

@@ -182,8 +182,6 @@ pcr_identify(driver_t *driver, device_t parent)
 static int
 pcr_probe(device_t dev)
 {
-	if (resource_disabled("pcr", 0))
-		return (ENXIO);
 
 	device_set_desc(dev, "PPC 970 Power Control Register");
 	return (0);

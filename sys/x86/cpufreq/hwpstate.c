@@ -304,9 +304,6 @@ hwpstate_identify(driver_t *driver, device_t parent)
 		return;
 	}
 
-	if (resource_disabled("hwpstate", 0))
-		return;
-
 	if (BUS_ADD_CHILD(parent, 10, "hwpstate", -1) == NULL)
 		device_printf(parent, "hwpstate: add child failed\n");
 }

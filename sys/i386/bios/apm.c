@@ -878,9 +878,6 @@ apm_identify(driver_t *driver, device_t parent)
 		return;
 	}
 
-	if (resource_disabled("apm", 0))
-		return;
-
 	child = BUS_ADD_CHILD(parent, 0, "apm", 0);
 	if (child == NULL)
 		panic("apm_identify");
@@ -1581,13 +1578,3 @@ apm_pm_func(u_long cmd, void *arg, ...)
 out:
 	return (error);
 }
-
-static void
-apm_pm_register(void *arg)
-{
-
-	if (!resource_disabled("apm", 0))
-		power_pm_register(POWER_PM_TYPE_APM, apm_pm_func, NULL);
-}
-
-SYSINIT(power, SI_SUB_KLD, SI_ORDER_ANY, apm_pm_register, 0);

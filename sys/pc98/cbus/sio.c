@@ -3613,8 +3613,6 @@ sio_cnprobe(cp)
 	for (unit = 0; unit < 16; unit++) { /* XXX need to know how many */
 		int flags;
 
-		if (resource_disabled("sio", unit))
-			continue;
 		if (resource_int_value("sio", unit, "flags", &flags))
 			continue;
 		if (COM_CONSOLE(flags) || COM_DEBUGGER(flags)) {

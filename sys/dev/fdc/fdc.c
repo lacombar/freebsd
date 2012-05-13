@@ -1770,8 +1770,6 @@ fdc_add_child(device_t dev, const char *name, int unit)
 	device_set_ivars(child, ivar);
 	ivar->fdunit = unit;
 	ivar->fdtype = FDT_NONE;
-	if (resource_disabled(name, unit))
-		device_disable(child);
 	return (child);
 }
 

@@ -494,23 +494,99 @@ struct sysctl_oid *devclass_get_sysctl_tree(devclass_t dc);
  * Access functions for device resources.
  */
 
-int	resource_int_value(const char *name, int unit, const char *resname,
-			   int *result);
-int	resource_long_value(const char *name, int unit, const char *resname,
-			    long *result);
-int	resource_string_value(const char *name, int unit, const char *resname,
-			      const char **result);
-int	resource_disabled(const char *name, int unit);
-int	resource_find_match(int *anchor, const char **name, int *unit,
-			    const char *resname, const char *value);
-int	resource_find_dev(int *anchor, const char *name, int *unit,
-			  const char *resname, const char *value);
-int	resource_set_int(const char *name, int unit, const char *resname,
-			 int value);
-int	resource_set_long(const char *name, int unit, const char *resname,
-			  long value);
-int	resource_set_string(const char *name, int unit, const char *resname,
-			    const char *value);
+int	resource_int_value(const char *, int, const char *, int *);
+int	resource_long_value(const char *, int, const char *, long *);
+int	resource_string_value(const char *, int, const char *, const char **);
+int	resource_disabled(const char *, int);
+int	resource_find_match(int *, const char **, int *, const char *, const char *);
+int	resource_find_dev(int *, const char *, int *, const char *, const char *);
+
+static __inline int	device_resource_int_value(device_t, const char *, int *);
+static __inline int	device_resource_long_value(device_t, const char *, long *);
+static __inline int	device_resource_string_value(device_t, const char *, const char **);
+static __inline int	device_resource_disabled(device_t);
+
+static __inline int
+device_resource_int_value(device_t dev, const char *resname, int *result)
+{
+	const char *name = device_get_name(dev);
+	int unit = device_get_unit(dev);
+
+	return resource_int_value(name, unit, resname, result);
+}
+
+static __inline int
+device_resource_long_value(device_t dev, const char *resname, long *result)
+{
+	const char *name = device_get_name(dev);
+	int unit = device_get_unit(dev);
+
+	return resource_long_value(name, unit, resname, result);
+}
+
+static __inline int
+device_resource_string_value(device_t dev, const char *resname, const char **result)
+{
+	const char *name = device_get_name(dev);
+	int unit = device_get_unit(dev);
+
+	return resource_string_value(name, unit, resname, result);
+}
+
+static __inline int
+device_resource_disabled(device_t dev)
+{
+	const char *name = device_get_name(dev);
+	int unit = device_get_unit(dev);
+
+	return resource_disabled(name, unit);
+}
+
+#if 0
+#define RESOURCE_INT		0
+#define RESOURCE_LONG		1
+#define RESOURCE_STRING		2
+
+struct dev_resource
+{
+	int		dr_type;
+	const char *	dr_resname;
+	void *		dr_result;
+};
+
+/* XXX al - this should not be inlined... */
+static __inlne int
+device_resource_load(device_t dev, struct dev_resource resources[], size_t count)
+{
+	int i, ret = 0;
+
+	for (i = 0; i < count; i++) {
+		struct dev_resource *dr = &resources[i];
+
+		switch (dr->dr_type) {
+		case RESOURCE_INT:
+			ret = device_resource_int_value(dev, dr->dr_resname,
+			    dr->dr_result);
+			break;
+		case RESOURCE_LONG:
+			ret = device_resource_long_value(dev, dr->dr_resname,
+			    dr->dr_result);
+			break;
+		case RESOURCE_STRING:
+			ret = device_resource_string_value(dev, dr->dr_resname,
+			    dr->dr_result);
+			break;
+		default:
+			continue;
+		}
+		if (ret != 0 && ret != ENOENT)
+			break;
+	}
+
+	return ret;
+}
+#endif
+
 /*
  * Functions for maintaining and checking consistency of
  * bus information exported to userspace.
@@ -575,6 +651,8 @@ void	bus_set_pass(int pass);
  * Shorthands for constructing method tables.
  */
 #define	DEVMETHOD	KOBJMETHOD
+#define	DEVMETHOD_END	KOBJMETHOD_END
+
 #define	DEVMETHOD_END	KOBJMETHOD_END
 
 /*

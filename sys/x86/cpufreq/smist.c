@@ -282,9 +282,6 @@ smist_identify(driver_t *driver, device_t parent)
 	struct piix4_pci_device *id;
 	device_t piix4 = NULL;
 
-	if (resource_disabled("ichst", 0))
-		return;
-
 	/* Check for a supported processor */
 	if (cpu_vendor_id != CPU_VENDOR_INTEL)
 		return;
