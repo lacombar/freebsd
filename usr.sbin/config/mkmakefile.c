@@ -150,8 +150,6 @@ makefile(void)
 	}
 	if (debugging)
 		fprintf(ofp, "DEBUG=-g\n");
-	if (profiling)
-		fprintf(ofp, "PROFLEVEL=%d\n", profiling);
 	if (*srcdir != '\0')
 		fprintf(ofp,"S=%s\n", srcdir);
 	while (fgets(line, BUFSIZ, ifp) != NULL) {
