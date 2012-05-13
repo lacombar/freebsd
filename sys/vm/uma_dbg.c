@@ -61,6 +61,7 @@ static const u_int32_t uma_junk = 0xdeadc0de;
 int
 trash_ctor(void *mem, int size, void *arg, int flags)
 {
+#if 0
 	int cnt;
 	u_int32_t *p;
 
@@ -72,6 +73,7 @@ trash_ctor(void *mem, int size, void *arg, int flags)
 			    mem, size, *p, p);
 			return (0);
 		}
+#endif
 	return (0);
 }
 
@@ -90,7 +92,7 @@ trash_dtor(void *mem, int size, void *arg)
 	cnt = size / sizeof(uma_junk);
 
 	for (p = mem; cnt > 0; cnt--, p++)
-		*p = uma_junk;
+		*p = (unsigned long)arg;
 }
 
 /*
@@ -102,7 +104,7 @@ trash_dtor(void *mem, int size, void *arg)
 int
 trash_init(void *mem, int size, int flags)
 {
-	trash_dtor(mem, size, NULL);
+	trash_dtor(mem, size, (void *)uma_junk);
 	return (0);
 }
 

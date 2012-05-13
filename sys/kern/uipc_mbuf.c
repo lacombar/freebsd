@@ -149,18 +149,6 @@ m_getm2(struct mbuf *m, int len, int how, short type, int flags)
 	return (m);
 }
 
-/*
- * Free an entire chain of mbufs and associated external buffers, if
- * applicable.
- */
-void
-m_freem(struct mbuf *mb)
-{
-
-	while (mb != NULL)
-		mb = m_free(mb);
-}
-
 /*-
  * Configure a provided mbuf to refer to the provided external storage
  * buffer and setup a reference count for said buffer.  If the setting
@@ -208,7 +196,7 @@ m_extadd(struct mbuf *mb, caddr_t buf, u_int size,
  * storage attached to them if the reference count hits 1.
  */
 void
-mb_free_ext(struct mbuf *m)
+mb_free_ext(struct mbuf *m, void *arg)
 {
 	int skipmbuf;
 	
@@ -276,7 +264,7 @@ mb_free_ext(struct mbuf *m)
 	m->m_ext.ext_size = 0;
 	m->m_ext.ext_type = 0;
 	m->m_flags &= ~M_EXT;
-	uma_zfree(zone_mbuf, m);
+	uma_zfree_arg(zone_mbuf, m, arg);
 }
 
 /*
