@@ -472,6 +472,16 @@ extern const struct ng_parse_type ng_parse_bytearray_type;
  */
 extern const struct ng_parse_type ng_parse_ng_mesg_type;
 
+/*
+ * SOCKADDR_{UN,IN} TYPE
+ *
+ * This is the parse type for a struct sockaddr_un and sockaddr_in.
+ *
+ *   Default value:		All fields zero
+ *   Additional info:		None required
+ */
+extern const struct ng_parse_type ng_parse_sockaddr_type;
+
 /************************************************************************
 		CONVERSTION AND PARSING ROUTINES
  ************************************************************************/

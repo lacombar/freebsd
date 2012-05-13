@@ -717,7 +717,7 @@ ng_iface_rcvmsg(node_p node, item_p item, hook_p lasthook)
 }
 
 /*
- * Recive data from a hook. Pass the packet to the correct input routine.
+ * Receive data from a hook. Pass the packet to the correct input routine.
  */
 static int
 ng_iface_rcvdata(hook_p hook, item_p item)

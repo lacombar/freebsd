@@ -62,6 +62,7 @@
 #include <sys/sysctl.h>
 #include <sys/syslog.h>
 #include <sys/unistd.h>
+#include <sys/sched.h>
 #include <machine/cpu.h>
 
 #include <net/netisr.h>
@@ -73,8 +74,8 @@
 
 MODULE_VERSION(netgraph, NG_ABI_VERSION);
 
-/* Mutex to protect topology events. */
-static struct mtx	ng_topo_mtx;
+/* R/W to protect topology events. */
+static struct rwlock	ng_topo_mtx;
 
 #ifdef	NETGRAPH_DEBUG
 static struct mtx	ng_nodelist_mtx; /* protects global node/hook lists */
@@ -191,6 +192,8 @@ static struct rwlock	ng_idhash_lock;
 #define	IDHASH_RUNLOCK()	rw_runlock(&ng_idhash_lock)
 #define	IDHASH_WLOCK()		rw_wlock(&ng_idhash_lock)
 #define	IDHASH_WUNLOCK()	rw_wunlock(&ng_idhash_lock)
+
+static int		queue_edge = 0;
 
 /* Method to find a node.. used twice so do it here */
 #define NG_IDHASH_FN(ID) ((ID) % (V_ng_ID_hmask + 1))
@@ -1159,7 +1162,7 @@ ng_destroy_hook(hook_p hook)
 	 * Protect divorce process with mutex, to avoid races on
 	 * simultaneous disconnect.
 	 */
-	mtx_lock(&ng_topo_mtx);
+	rw_wlock(&ng_topo_mtx);
 
 	hook->hk_flags |= HK_INVALID;
 
@@ -1179,17 +1182,17 @@ ng_destroy_hook(hook_p hook)
 			 * If it's already divorced from a node,
 			 * just free it.
 			 */
-			mtx_unlock(&ng_topo_mtx);
+			rw_wunlock(&ng_topo_mtx);
 		} else {
-			mtx_unlock(&ng_topo_mtx);
+			rw_wunlock(&ng_topo_mtx);
 			ng_rmhook_self(peer); 	/* Send it a surprise */
 		}
 		NG_HOOK_UNREF(peer);		/* account for peer link */
 		NG_HOOK_UNREF(hook);		/* account for peer link */
 	} else
-		mtx_unlock(&ng_topo_mtx);
+		rw_wunlock(&ng_topo_mtx);
 
-	mtx_assert(&ng_topo_mtx, MA_NOTOWNED);
+	rw_assert(&ng_topo_mtx, RA_UNLOCKED);
 
 	/*
 	 * Remove the hook from the node's list to avoid possible recursion
@@ -1230,9 +1233,9 @@ ng_bypass(hook_p hook1, hook_p hook2)
 		TRAP_ERROR();
 		return (EINVAL);
 	}
-	mtx_lock(&ng_topo_mtx);
+	rw_wlock(&ng_topo_mtx);
 	if (NG_HOOK_NOT_VALID(hook1) || NG_HOOK_NOT_VALID(hook2)) {
-		mtx_unlock(&ng_topo_mtx);
+		rw_wunlock(&ng_topo_mtx);
 		return (EINVAL);
 	}
 	hook1->hk_peer->hk_peer = hook2->hk_peer;
@@ -1240,7 +1243,7 @@ ng_bypass(hook_p hook1, hook_p hook2)
 
 	hook1->hk_peer = &ng_deadhook;
 	hook2->hk_peer = &ng_deadhook;
-	mtx_unlock(&ng_topo_mtx);
+	rw_wunlock(&ng_topo_mtx);
 
 	NG_HOOK_UNREF(hook1);
 	NG_HOOK_UNREF(hook2);
@@ -1437,15 +1440,15 @@ ng_con_part2(node_p node, item_p item, hook_p hook)
 	/*
 	 * Acquire topo mutex to avoid race with ng_destroy_hook().
 	 */
-	mtx_lock(&ng_topo_mtx);
+	rw_rlock(&ng_topo_mtx);
 	peer = hook->hk_peer;
 	if (peer == &ng_deadhook) {
-		mtx_unlock(&ng_topo_mtx);
+		rw_runlock(&ng_topo_mtx);
 		printf("failed in ng_con_part2(B)\n");
 		ng_destroy_hook(hook);
 		ERROUT(ENOENT);
 	}
-	mtx_unlock(&ng_topo_mtx);
+	rw_runlock(&ng_topo_mtx);
 
 	if ((error = ng_send_fn2(peer->hk_node, peer, item, &ng_con_part3,
 	    NULL, 0, NG_REUSE_ITEM))) {
@@ -1790,14 +1793,14 @@ ng_path2noderef(node_p here, const char *address, node_p *destp,
 		/* We have a segment, so look for a hook by that name */
 		hook = ng_findhook(node, segment);
 
-		mtx_lock(&ng_topo_mtx);
+		rw_rlock(&ng_topo_mtx);
 		/* Can't get there from here... */
 		if (hook == NULL || NG_HOOK_PEER(hook) == NULL ||
 		    NG_HOOK_NOT_VALID(hook) ||
 		    NG_HOOK_NOT_VALID(NG_HOOK_PEER(hook))) {
 			TRAP_ERROR();
 			NG_NODE_UNREF(node);
-			mtx_unlock(&ng_topo_mtx);
+			rw_runlock(&ng_topo_mtx);
 			return (ENOENT);
 		}
 
@@ -1814,7 +1817,7 @@ ng_path2noderef(node_p here, const char *address, node_p *destp,
 		NG_NODE_UNREF(oldnode);	/* XXX another race */
 		if (NG_NODE_NOT_VALID(node)) {
 			NG_NODE_UNREF(node);	/* XXX more races */
-			mtx_unlock(&ng_topo_mtx);
+			rw_runlock(&ng_topo_mtx);
 			TRAP_ERROR();
 			return (ENXIO);
 		}
@@ -1827,11 +1830,11 @@ ng_path2noderef(node_p here, const char *address, node_p *destp,
 				} else
 					*lasthook = NULL;
 			}
-			mtx_unlock(&ng_topo_mtx);
+			rw_runlock(&ng_topo_mtx);
 			*destp = node;
 			return (0);
 		}
-		mtx_unlock(&ng_topo_mtx);
+		rw_runlock(&ng_topo_mtx);
 	}
 }
 
@@ -2260,7 +2263,8 @@ ng_snd_item(item_p item, int flags)
 	 * loops back from outbound to inbound path, or stack usage
 	 * level is dangerous - enqueue message.
 	 */
-	if ((flags & NG_QUEUE) || (hook && (hook->hk_flags & HK_QUEUE))) {
+	if ((flags & NG_QUEUE) || (hook && (hook->hk_flags & HK_QUEUE)) ||
+	    (queue_edge && !(NG_NODE_IS_EDGE(node) || (hook && NG_HOOK_IS_EDGE(hook))))) {
 		queue = 1;
 	} else if (hook && (hook->hk_flags & HK_TO_INBOUND) &&
 	    curthread->td_ng_outbound) {
@@ -2945,6 +2949,7 @@ uma_zone_t			ng_qdzone;
 static int			numthreads = 0; /* number of queue threads */
 static int			maxalloc = 4096;/* limit the damage of a leak */
 static int			maxdata = 512;	/* limit the damage of a DoS */
+static int			bind_thread = 0;
 
 TUNABLE_INT("net.graph.threads", &numthreads);
 SYSCTL_INT(_net_graph, OID_AUTO, threads, CTLFLAG_RDTUN, &numthreads,
@@ -2955,6 +2960,12 @@ SYSCTL_INT(_net_graph, OID_AUTO, maxalloc, CTLFLAG_RDTUN, &maxalloc,
 TUNABLE_INT("net.graph.maxdata", &maxdata);
 SYSCTL_INT(_net_graph, OID_AUTO, maxdata, CTLFLAG_RDTUN, &maxdata,
     0, "Maximum number of data queue items to allocate");
+TUNABLE_INT("net.graph.queue_edge", &queue_edge);
+SYSCTL_INT(_net_graph, OID_AUTO, queue_edge, CTLFLAG_RW, &queue_edge,
+    0, "Queue packet from/to edge node");
+TUNABLE_INT("net.graph.bind_thread", &bind_thread);
+SYSCTL_INT(_net_graph, OID_AUTO, bind_thread, CTLFLAG_RDTUN, &bind_thread,
+    0, "Bind thread to CPU");
 
 #ifdef	NETGRAPH_DEBUG
 static TAILQ_HEAD(, ng_item) ng_itemlist = TAILQ_HEAD_INITIALIZER(ng_itemlist);
@@ -3199,8 +3210,7 @@ ngb_mod_event(module_t mod, int event, void *data)
 		rw_init(&ng_typelist_lock, "netgraph types");
 		rw_init(&ng_idhash_lock, "netgraph idhash");
 		rw_init(&ng_namehash_lock, "netgraph namehash");
-		mtx_init(&ng_topo_mtx, "netgraph topology mutex", NULL,
-		    MTX_DEF);
+		rw_init(&ng_topo_mtx, "netgraph topology mutex");
 #ifdef	NETGRAPH_DEBUG
 		mtx_init(&ng_nodelist_mtx, "netgraph nodelist mutex", NULL,
 		    MTX_DEF);
@@ -3220,8 +3230,8 @@ ngb_mod_event(module_t mod, int event, void *data)
 		/* Create threads. */
     		p = NULL; /* start with no process */
 		for (i = 0; i < numthreads; i++) {
-			if (kproc_kthread_add(ngthread, NULL, &p, &td,
-			    RFHIGHPID, 0, "ng_queue", "ng_queue%d", i)) {
+			if (kproc_kthread_add(ngthread, (void *)(intptr_t)(i % mp_ncpus),
+			    &p, &td, RFHIGHPID, 0, "ng_queue", "ng_queue%d", i)) {
 				numthreads = i;
 				break;
 			}
@@ -3392,6 +3402,13 @@ SYSCTL_PROC(_debug, OID_AUTO, ng_dump_items, CTLTYPE_INT | CTLFLAG_RW,
 static void
 ngthread(void *arg)
 {
+
+	if (bind_thread) {
+		thread_lock(curthread);
+		sched_bind(curthread, (intptr_t)arg);
+		thread_unlock(curthread);
+	}
+
 	for (;;) {
 		node_p  node;
 
@@ -3576,13 +3593,13 @@ ng_address_hook(node_p here, item_p item, hook_p hook, ng_ID_t retaddr)
 	 * that the peer is still connected (even if invalid,) we know
 	 * that the peer node is present, though maybe invalid.
 	 */
-	mtx_lock(&ng_topo_mtx);
+	rw_rlock(&ng_topo_mtx);
 	if ((hook == NULL) || NG_HOOK_NOT_VALID(hook) ||
 	    NG_HOOK_NOT_VALID(peer = NG_HOOK_PEER(hook)) ||
 	    NG_NODE_NOT_VALID(peernode = NG_PEER_NODE(hook))) {
 		NG_FREE_ITEM(item);
 		TRAP_ERROR();
-		mtx_unlock(&ng_topo_mtx);
+		rw_runlock(&ng_topo_mtx);
 		return (ENETDOWN);
 	}
 
@@ -3595,7 +3612,7 @@ ng_address_hook(node_p here, item_p item, hook_p hook, ng_ID_t retaddr)
 	NGI_SET_NODE(item, peernode);
 	SET_RETADDR(item, here, retaddr);
 
-	mtx_unlock(&ng_topo_mtx);
+	rw_runlock(&ng_topo_mtx);
 
 	return (0);
 }
