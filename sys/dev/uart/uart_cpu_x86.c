@@ -32,7 +32,9 @@ __FBSDID("$FreeBSD$");
 #include <sys/bus.h>
 
 #include <machine/bus.h>
+#include <machine/ofw_machdep.h>
 
+#include <dev/ofw/openfirm.h>
 #include <dev/uart/uart.h>
 #include <dev/uart/uart_cpu.h>
 

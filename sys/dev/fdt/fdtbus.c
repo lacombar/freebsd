@@ -467,6 +467,43 @@ pci_from_fdt_node(device_t dev_par, phandle_t dt_node, char *name,
 	}
 }
 
+static device_t
+newbus_isa_create(device_t dev_par, phandle_t dt_node, u_long par_base,
+    u_long par_size)
+{
+
+	return NULL;
+}
+
+static void 
+isa_from_fdt_node(device_t dev_par, phandle_t dt_node, char *name,
+    char *type, char *compat)
+{
+	u_long reg_base, reg_size;
+	phandle_t dt_child;
+
+	/*
+	 * Retrieve 'reg' property.
+	 */
+	if (fdt_regsize(dt_node, &reg_base, &reg_size) != 0) {
+		device_printf(dev_par, "could not retrieve 'reg' prop\n");
+		return;
+	}
+
+	/*
+	 * Walk the ISA node and instantiate newbus devices representing
+	 * logical resources (bridges / ports).
+	 */
+	for (dt_child = OF_child(dt_node); dt_child != 0;
+	    dt_child = OF_peer(dt_child)) {
+
+		if (!(fdt_is_enabled(dt_child)))
+			continue;
+
+		newbus_isa_create(dev_par, dt_child, reg_base, reg_size);
+	}
+}
+
 /*
  * These FDT nodes do not need a corresponding newbus device object.
  */
@@ -498,6 +535,8 @@ newbus_device_from_fdt_node(device_t dev_par, phandle_t node)
 	child = newbus_device_create(dev_par, node, name, type, compat);
 	if (type != NULL && strcmp(type, "pci") == 0)
 		pci_from_fdt_node(child, node, name, type, compat);
+	if (type != NULL && strcmp(type, "isa") == 0)
+		isa_from_fdt_node(child, node, name, type, compat);
 }
 
 static struct resource *

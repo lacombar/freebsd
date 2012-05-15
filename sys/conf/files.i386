@@ -200,6 +200,13 @@ dev/hwpmc/hwpmc_piv.c		optional hwpmc
 dev/hwpmc/hwpmc_ppro.c		optional hwpmc
 dev/hwpmc/hwpmc_tsc.c		optional hwpmc
 dev/hwpmc/hwpmc_x86.c		optional hwpmc
+dev/ofw/openfirm.c		optional fdt
+dev/ofw/openfirmio.c		optional fdt
+dev/ofw/ofw_bus_if.m		optional fdt
+dev/ofw/ofw_if.m		optional fdt
+dev/ofw/ofw_bus_subr.c		optional fdt
+dev/ofw/ofw_fdt.c		optional fdt
+dev/fdt/fdt_x86.c		optional fdt
 dev/ichwd/ichwd.c		optional ichwd
 dev/if_ndis/if_ndis.c		optional ndis
 dev/if_ndis/if_ndis_pccard.c	optional ndis pccard
