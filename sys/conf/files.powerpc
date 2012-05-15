@@ -72,7 +72,6 @@ libkern/ffsl.c			standard
 libkern/fls.c			standard
 libkern/flsl.c			standard
 libkern/lshrdi3.c		optional	powerpc
-libkern/memchr.c		optional	fdt
 libkern/memmove.c		standard
 libkern/memset.c		standard
 libkern/moddi3.c		optional	powerpc

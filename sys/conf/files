@@ -2720,6 +2720,7 @@ libkern/inet_ntoa.c		standard
 libkern/inet_ntop.c		standard
 libkern/inet_pton.c		standard
 libkern/mcount.c		optional profiling-routine
+libkern/memchr.c		optional fdt
 libkern/memcchr.c		standard
 libkern/memcmp.c		standard
 libkern/qsort.c			standard
