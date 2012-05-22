@@ -46,4 +46,24 @@
  */
 #define fdtbus_bus_space_tag	(&bs_be_tag)
 
+static inline int
+fdtbus_arch_setup_intr(device_t bus, device_t child, struct resource *res,
+    int flags, driver_filter_t *filter, driver_intr_t *ihand, void *arg,
+    void **cookiep)
+{
+	const char *name = device_get_nameunit(child);
+	u_long irq = rman_get_start(res);
+
+	return powerpc_setup_intr(name, irq, filter, ihand, arg, flags,
+	    cookiep);
+}
+
+static inline int
+fdtbus_arch_teardown_intr(device_t bus, device_t child, struct resource *res,
+    void *cookie)
+{
+
+	return powerpc_teardown_intr(cookie);
+}
+
 #endif /* _MACHINE_FDT_H_ */

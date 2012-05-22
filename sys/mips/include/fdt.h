@@ -54,4 +54,26 @@
 #define fdtbus_bus_space_tag	NULL
 #endif
 
+static inline int
+fdtbus_arch_setup_intr(device_t bus, device_t child, struct resource *res,
+    int flags, driver_filter_t *filter, driver_intr_t *ihand, void *arg,
+    void **cookiep)
+{
+	const char *name = device_get_nameunit(child);
+	u_long irq = rman_get_start(res);
+
+	cpu_establish_hardintr(name, filter, ihand, arg, irq, flags, cookiep);
+
+	return 0;
+}
+
+static inline int
+fdtbus_arch_teardown_intr(device_t bus, device_t child, struct resource *res,
+    void *cookie)
+{
+
+	/* mips does not have a teardown yet */
+	return 0;
+}
+
 #endif /* _MACHINE_FDT_H_ */

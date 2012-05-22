@@ -585,18 +585,8 @@ fdtbus_setup_intr(device_t bus, device_t child, struct resource *res,
 	if (err)
 		return (err);
 
-#if defined(__powerpc__)
-	err = powerpc_setup_intr(device_get_nameunit(child),
-	    rman_get_start(res), filter, ihand, arg, flags, cookiep);
-#elif defined(__mips__)
-	cpu_establish_hardintr(device_get_nameunit(child), 
-		filter, ihand, arg, rman_get_start(res), flags, cookiep);
-#elif defined(__arm__)
-	arm_setup_irqhandler(device_get_nameunit(child),
-	    filter, ihand, arg, rman_get_start(res), flags, cookiep);
-	arm_unmask_irq(rman_get_start(res));
-	err = 0;
-#endif
+	err = fdtbus_arch_setup_intr(bus, child, res, flags, filter, ihand, arg
+	    cookiep);
 
 	return (err);
 }
@@ -622,14 +612,7 @@ fdtbus_teardown_intr(device_t bus, device_t child, struct resource *res,
     void *cookie)
 {
 
-#if defined(__powerpc__)
-	return (powerpc_teardown_intr(cookie));
-#elif defined(__mips__)
-	/* mips does not have a teardown yet */
-	return (0);
-#elif defined(__arm__)
-	return (arm_remove_irqhandler(rman_get_start(res), cookie));
-#endif
+	return (fdtbus_arch_teardown_intr(bus, child, res, cookie));
 }
 
 static const char *

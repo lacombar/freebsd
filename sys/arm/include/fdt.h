@@ -60,4 +60,27 @@ struct mem_region {
 int fdt_pci_devmap(phandle_t, struct pmap_devmap *devmap, vm_offset_t,
     vm_offset_t);
 
+static inline int
+fdtbus_arch_setup_intr(device_t bus, device_t child, struct resource *res,
+    int flags, driver_filter_t *filter, driver_intr_t *ihand, void *arg,
+    void **cookiep)
+{
+	const char *name = device_get_nameunit(child);
+	u_long irq = rman_get_start(res);
+
+	arm_setup_irqhandler(name, filter, ihand, arg, irq, flags, cookiep);
+	arm_unmask_irq(irq);
+
+	return 0;
+}
+
+static inline int
+fdtbus_arch_teardown_intr(device_t bus, device_t child, struct resource *res,
+    void *cookie)
+{
+	u_long irq = rman_get_start(res);
+
+	return arm_remove_irqhandler(irq, cookie);
+}
+
 #endif /* _MACHINE_FDT_H_ */
