@@ -140,8 +140,8 @@ uart_cpu_getdev(int devtype, struct uart_devinfo *di)
 	u_long start, size;
 	int err;
 
-	uart_bus_space_mem = fdtbus_bs_tag;
-	uart_bus_space_io = NULL;
+	uart_bus_space_mem = fdtbus_bus_space_tag;
+	uart_bus_space_io = fdtbus_bus_space_tag;
 
 	/* Allow overriding the FDT uning the environment. */
 	class = &uart_ns8250_class;

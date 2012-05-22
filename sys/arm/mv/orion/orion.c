@@ -89,7 +89,7 @@ get_tclk(void)
 	 * Current setting is read from Sample At Reset register.
 	 */
 	/* XXX MPP addr should be retrieved from the DT */
-	sar = bus_space_read_4(fdtbus_bs_tag, MV_MPP_BASE, SAMPLE_AT_RESET);
+	sar = bus_space_read_4(fdtbus_bus_space_tag, MV_MPP_BASE, SAMPLE_AT_RESET);
 	sar = (sar & TCLK_MASK) >> TCLK_SHIFT;
 	switch (sar) {
 	case 1:

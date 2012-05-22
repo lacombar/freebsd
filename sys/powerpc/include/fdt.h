@@ -44,6 +44,6 @@
 /*
  * Bus space tag. XXX endianess info needs to be derived from the blob.
  */
-#define fdtbus_bs_tag	(&bs_be_tag)
+#define fdtbus_bus_space_tag	(&bs_be_tag)
 
 #endif /* _MACHINE_FDT_H_ */

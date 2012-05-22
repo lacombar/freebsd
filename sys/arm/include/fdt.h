@@ -50,7 +50,7 @@
 /*
  * Bus space tag. XXX endianess info needs to be derived from the blob.
  */
-extern bus_space_tag_t fdtbus_bs_tag;
+extern bus_space_tag_t fdtbus_bus_space_tag;
 
 struct mem_region {
 	vm_offset_t	mr_start;

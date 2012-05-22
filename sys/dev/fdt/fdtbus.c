@@ -541,7 +541,7 @@ fdtbus_alloc_resource(device_t bus, device_t child, int type, int *rid,
 
 	if (type == SYS_RES_IOPORT || type == SYS_RES_MEMORY) {
 		/* XXX endianess should be set based on SOC node */
-		rman_set_bustag(res, fdtbus_bs_tag);
+		rman_set_bustag(res, fdtbus_bus_space_tag);
 		rman_set_bushandle(res, rman_get_start(res));
 	}
 

@@ -73,7 +73,8 @@ get_tclk(void)
 	 * On Discovery TCLK is can be configured to 166 MHz or 200 MHz.
 	 * Current setting is read from Sample At Reset register.
 	 */
-	sar = bus_space_read_4(fdtbus_bs_tag, MV_MPP_BASE, SAMPLE_AT_RESET_HI);
+	sar = bus_space_read_4(fdtbus_bus_space_tag, MV_MPP_BASE,
+	    SAMPLE_AT_RESET_HI);
 	sar = (sar & TCLK_MASK) >> TCLK_SHIFT;
 
 	switch (sar) {

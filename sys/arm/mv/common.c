@@ -225,14 +225,14 @@ uint32_t
 read_cpu_ctrl(uint32_t reg)
 {
 
-	return (bus_space_read_4(fdtbus_bs_tag, MV_CPU_CONTROL_BASE, reg));
+	return (bus_space_read_4(fdtbus_bus_space_tag, MV_CPU_CONTROL_BASE, reg));
 }
 
 void
 write_cpu_ctrl(uint32_t reg, uint32_t val)
 {
 
-	bus_space_write_4(fdtbus_bs_tag, MV_CPU_CONTROL_BASE, reg, val);
+	bus_space_write_4(fdtbus_bus_space_tag, MV_CPU_CONTROL_BASE, reg, val);
 }
 
 void
@@ -304,8 +304,8 @@ soc_id(uint32_t *dev, uint32_t *rev)
 	 * possible) after the internal registers range has been mapped in via
 	 * pmap_devmap_bootstrap().
 	 */
-	*dev = bus_space_read_4(fdtbus_bs_tag, MV_PCIE_BASE, 0) >> 16;
-	*rev = bus_space_read_4(fdtbus_bs_tag, MV_PCIE_BASE, 8) & 0xff;
+	*dev = bus_space_read_4(fdtbus_bus_space_tag, MV_PCIE_BASE, 0) >> 16;
+	*rev = bus_space_read_4(fdtbus_bus_space_tag, MV_PCIE_BASE, 8) & 0xff;
 }
 
 static void
@@ -515,7 +515,7 @@ soc_dump_decode_win(void)
 		printf("\n");
 	}
 	printf("Internal regs base: 0x%08x\n",
-	    bus_space_read_4(fdtbus_bs_tag, MV_INTREGS_BASE, 0));
+	    bus_space_read_4(fdtbus_bus_space_tag, MV_INTREGS_BASE, 0));
 
 	for (i = 0; i < MV_WIN_DDR_MAX; i++)
 		printf("DDR CS#%d: b 0x%08x, s 0x%08x\n", i,

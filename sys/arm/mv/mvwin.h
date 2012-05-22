@@ -203,84 +203,84 @@
 	static __inline uint32_t						\
 	pre ## _ ## reg ## _read(int i)						\
 	{									\
-		return (bus_space_read_4(fdtbus_bs_tag, base, off(i)));		\
+		return (bus_space_read_4(fdtbus_bus_space_tag, base, off(i)));	\
 	}
 
 #define WIN_REG_IDX_RD2(pre,reg,off,base)					\
 	static  __inline uint32_t						\
 	pre ## _ ## reg ## _read(int i, int j)					\
 	{									\
-		return (bus_space_read_4(fdtbus_bs_tag, base, off(i, j)));		\
+		return (bus_space_read_4(fdtbus_bus_space_tag, base, off(i, j)));	\
 	}									\
 
 #define WIN_REG_BASE_IDX_RD(pre,reg,off)					\
 	static __inline uint32_t						\
 	pre ## _ ## reg ## _read(uint32_t base, int i)				\
 	{									\
-		return (bus_space_read_4(fdtbus_bs_tag, base, off(i)));		\
+		return (bus_space_read_4(fdtbus_bus_space_tag, base, off(i)));	\
 	}
 
 #define WIN_REG_BASE_IDX_RD2(pre,reg,off)					\
 	static __inline uint32_t						\
 	pre ## _ ## reg ## _read(uint32_t base, int i, int j)				\
 	{									\
-		return (bus_space_read_4(fdtbus_bs_tag, base, off(i, j)));		\
+		return (bus_space_read_4(fdtbus_bus_space_tag, base, off(i, j)));	\
 	}
 
 #define WIN_REG_IDX_WR(pre,reg,off,base)					\
 	static __inline void							\
 	pre ## _ ## reg ## _write(int i, uint32_t val)				\
 	{									\
-		bus_space_write_4(fdtbus_bs_tag, base, off(i), val);			\
+		bus_space_write_4(fdtbus_bus_space_tag, base, off(i), val);	\
 	}
 
 #define WIN_REG_IDX_WR2(pre,reg,off,base)					\
 	static __inline void							\
 	pre ## _ ## reg ## _write(int i, int j, uint32_t val)			\
 	{									\
-		bus_space_write_4(fdtbus_bs_tag, base, off(i, j), val);		\
+		bus_space_write_4(fdtbus_bus_space_tag, base, off(i, j), val);	\
 	}
 
 #define WIN_REG_BASE_IDX_WR(pre,reg,off)					\
 	static __inline void							\
 	pre ## _ ## reg ## _write(uint32_t base, int i, uint32_t val)		\
 	{									\
-		bus_space_write_4(fdtbus_bs_tag, base, off(i), val);			\
+		bus_space_write_4(fdtbus_bus_space_tag, base, off(i), val);	\
 	}
 
 #define WIN_REG_BASE_IDX_WR2(pre,reg,off)					\
 	static __inline void							\
 	pre ## _ ## reg ## _write(uint32_t base, int i, int j, uint32_t val)		\
 	{									\
-		bus_space_write_4(fdtbus_bs_tag, base, off(i, j), val);			\
+		bus_space_write_4(fdtbus_bus_space_tag, base, off(i, j), val);	\
 	}
 
 #define WIN_REG_RD(pre,reg,off,base)						\
 	static __inline uint32_t						\
 	pre ## _ ## reg ## _read(void)						\
 	{									\
-		return (bus_space_read_4(fdtbus_bs_tag, base, off));			\
+		return (bus_space_read_4(fdtbus_bus_space_tag, base, off));	\
 	}
 
 #define WIN_REG_BASE_RD(pre,reg,off)						\
 	static __inline uint32_t						\
 	pre ## _ ## reg ## _read(uint32_t base)					\
 	{									\
-		return (bus_space_read_4(fdtbus_bs_tag, base, off));			\
+		return (bus_space_read_4(fdtbus_bus_space_tag, base, off));	\
 	}
 
 #define WIN_REG_WR(pre,reg,off,base)						\
 	static __inline void							\
 	pre ## _ ## reg ## _write(uint32_t val)					\
 	{									\
-		bus_space_write_4(fdtbus_bs_tag, base, off, val);			\
+		bus_space_write_4(fdtbus_bus_space_tag, base, off, val);	\
 	}
 
 #define WIN_REG_BASE_WR(pre,reg,off)						\
 	static __inline void							\
 	pre ## _ ## reg ## _write(uint32_t base, uint32_t val)			\
 	{									\
-		bus_space_write_4(fdtbus_bs_tag, base, off, val);			\
+		bus_space_write_4(fdtbus_bus_space_tag, base, off, val);	\
 	}
 
 #endif /* _MVWIN_H_ */

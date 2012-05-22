@@ -715,7 +715,7 @@ moveon:
 			ctrl_val |= MPP_SEL(i + j, mpp[i + j]);
 		}
 		i += MPP_PINS_PER_REG;
-		bus_space_write_4(fdtbus_bs_tag, start, ctrl_offset,
+		bus_space_write_4(fdtbus_bus_space_tag, start, ctrl_offset,
 		    ctrl_val);
 
 #if defined(SOC_MV_ORION)

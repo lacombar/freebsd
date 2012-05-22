@@ -159,4 +159,4 @@ static struct bus_space _base_tag = {
 	NULL
 };
 
-bus_space_tag_t fdtbus_bs_tag = &_base_tag;
+bus_space_tag_t fdtbus_bus_space_tag = &_base_tag;
