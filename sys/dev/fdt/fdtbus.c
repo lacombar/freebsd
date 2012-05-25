@@ -69,6 +69,7 @@ struct fdtbus_devinfo {
 struct fdtbus_softc {
 	struct rman	sc_irq;
 	struct rman	sc_mem;
+	struct rman	sc_port;
 };
 
 /*
@@ -220,6 +221,26 @@ fdtbus_attach(device_t dev)
 	}
 
 	/*
+	 * Port-mapped I/O space rman.
+	 */
+	start = 0;
+	end = ~0ul;
+	sc->sc_port.rm_start = start;
+	sc->sc_port.rm_end = end;
+	sc->sc_port.rm_type = RMAN_ARRAY;
+	sc->sc_port.rm_descr = "I/O port";
+	if ((error = rman_init(&sc->sc_port)) != 0) {
+		device_printf(dev, "could not init I/O port rman, error = %d\n",
+		    error);
+		return (error);
+	}
+	if ((error = rman_manage_region(&sc->sc_port, start, end)) != 0) {
+		device_printf(dev, "could not manage I/O mem region, "
+		    "error = %d\n", error);
+		return (error);
+	}
+
+	/*
 	 * Walk the FDT root node and add top-level devices as our children.
 	 */
 	for (child = OF_child(root); child != 0; child = OF_peer(child)) {
@@ -245,6 +266,7 @@ fdtbus_print_child(device_t dev, device_t child)
 
 	rv = 0;
 	rv += bus_print_child_header(dev, child);
+	rv += resource_list_print_type(rl, "port", SYS_RES_IOPORT, "%#lx");
 	rv += resource_list_print_type(rl, "mem", SYS_RES_MEMORY, "%#lx");
 	rv += resource_list_print_type(rl, "irq", SYS_RES_IRQ, "%ld");
 	rv += bus_print_child_footer(dev, child);
@@ -497,9 +519,6 @@ fdtbus_alloc_resource(device_t bus, device_t child, int type, int *rid,
 		if ((di = device_get_ivars(child)) == NULL)
 			return (NULL);
 
-		if (type == SYS_RES_IOPORT)
-			type = SYS_RES_MEMORY;
-
 		rle = resource_list_find(&di->di_res, type, *rid);
 		if (rle == NULL) {
 			device_printf(bus, "no default resources for "
@@ -520,8 +539,9 @@ fdtbus_alloc_resource(device_t bus, device_t child, int type, int *rid,
 	case SYS_RES_IRQ:
 		rm = &sc->sc_irq;
 		break;
-
 	case SYS_RES_IOPORT:
+		rm = &sc->sc_port;
+		break;
 	case SYS_RES_MEMORY:
 		rm = &sc->sc_mem;
 		break;
@@ -539,10 +559,15 @@ fdtbus_alloc_resource(device_t bus, device_t child, int type, int *rid,
 
 	rman_set_rid(res, *rid);
 
-	if (type == SYS_RES_IOPORT || type == SYS_RES_MEMORY) {
-		/* XXX endianess should be set based on SOC node */
-		rman_set_bustag(res, fdtbus_bus_space_tag);
+	switch (type) {
+	case SYS_RES_IOPORT;
+		rman_set_bustag(res, fdtbus_bus_space_io_tag);
 		rman_set_bushandle(res, rman_get_start(res));
+		break;
+	case SYS_RES_MEMORY;
+		rman_set_bustag(res, fdtbus_bus_space_mem_tag);
+		rman_set_bushandle(res, rman_get_start(res));
+		break;
 	}
 
 	if (needactivate)
