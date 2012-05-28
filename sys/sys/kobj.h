@@ -216,39 +216,34 @@ extern u_int kobj_lookup_hits;
 extern u_int kobj_lookup_misses;
 #endif
 
-/*
- * Lookup the method in the cache and if it isn't there look it up the
- * slow way.
- */
-#ifdef KOBJ_STATS
-#define KOBJOPLOOKUP(OPS,OP) do {				\
-	kobjop_desc_t _desc = &OP##_##desc;			\
-	kobj_method_t **_cep =					\
-	    &OPS->cache[_desc->id & (KOBJ_CACHE_SIZE-1)];	\
-	kobj_method_t *_ce = *_cep;				\
-	kobj_lookup_hits++; /* assume hit */			\
-	if (_ce->desc != _desc)					\
-		_ce = kobj_lookup_method(OPS->cls,		\
-					 _cep, _desc);		\
-	_m = _ce->func;						\
-} while(0)
-#else
-#define KOBJOPLOOKUP(OPS,OP) do {				\
-	kobjop_desc_t _desc = &OP##_##desc;			\
-	kobj_method_t **_cep =					\
-	    &OPS->cache[_desc->id & (KOBJ_CACHE_SIZE-1)];	\
-	kobj_method_t *_ce = *_cep;				\
-	if (_ce->desc != _desc)					\
-		_ce = kobj_lookup_method(OPS->cls,		\
-					 _cep, _desc);		\
-	_m = _ce->func;						\
-} while(0)
-#endif
-
 kobj_method_t* kobj_lookup_method(kobj_class_t cls,
 				  kobj_method_t **cep,
 				  kobjop_desc_t desc);
 
+/*
+ * Lookup the method in the cache and if it isn't there look it up the
+ * slow way.
+ */
+#define KOBJOPLOOKUP(OPS,OP)	kobjop_lookup(OPS, &OP##_##desc)
+
+static __inline kobjop_t kobjop_lookup(kobj_ops_t, kobjop_desc_t);
+
+static __inline kobjop_t
+kobjop_lookup(kobj_ops_t ops, kobjop_desc_t desc)
+{
+	kobj_method_t *ce, **cep;
+
+	cep = &ops->cache[desc->id & (KOBJ_CACHE_SIZE-1)];
+	ce = *cep;
+
+#ifdef KOBJ_STATS
+	kobj_lookup_hits++; /* assume hit */
+#endif
+	if (ce->desc != desc)
+		ce = kobj_lookup_method(ops->cls, cep, desc);
+
+	return ce->func;
+}
 
 /*
  * Default method implementation. Returns ENXIO.

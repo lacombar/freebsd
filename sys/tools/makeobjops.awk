@@ -326,7 +326,7 @@ function handle_method (static, doc)
 	printh("\tkobjop_t _m;");
 	if (!static)
 		firstvar = "((kobj_t)" firstvar ")";
-	printh("\tKOBJOPLOOKUP(" firstvar "->ops," mname ");");
+	printh("\t_m = KOBJOPLOOKUP(" firstvar "->ops," mname ");");
 	retrn =  (ret != "void") ? "return " : "";
 	printh("\t" retrn "((" mname "_t *) _m)(" varname_list ");");
 	printh("}\n");
