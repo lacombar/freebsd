@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011 Arnaud Lacombe
+ * Copyright (c) 2011, 2012 Arnaud Lacombe
  * All rights reserved.
  *
  * Permission to use, copy, modify, and/or distribute this software for any
@@ -38,38 +38,24 @@ __FBSDID("$FreeBSD$");
 
 #include "watchdog_if.h"
 
-enum watchdog_state
-{
-	WATCHDOG_STATE_RUNNING,
-	WATCHDOG_STATE_RUNNING_IMMUTABLE,
-	WATCHDOG_STATE_STOPPED,
-};
-
-typedef enum watchdog_state watchdog_state_t;
-
 struct watchdog_softc
 {
 	char *		ws_capabilities_actions;
 	char *		ws_capabilities_max_timeout;
-	int			ws_timeout;
+	struct timespec		ws_timeout;
 	watchdog_action_t	ws_action;
 	unsigned int		ws_flags;
 #define WATCHDOG_RUNNING	0x01
 #define WATCHDOG_IMMUTABLE	0x02
 #define WATCHDOG_FLAGS_DESC	\
-	"\20\2immutable\1running"
+	"\20\1running\2immutable"
 };
 
 /*
  * Prototypes
  */
-/* Device interface */
-static int watchdog_probe(device_t);
-static int watchdog_attach(device_t);
-static int watchdog_detach(device_t);
-
 /* Sysctl helper */
-static int watchdog_setup_sysctl(device_t);
+static int watchdog_register_sysctl(device_t);
 
 /* Sysctl hooks */
 static int watchdog_sysctl_config_timeout(SYSCTL_HANDLER_ARGS);
@@ -80,11 +66,16 @@ static int watchdog_sysctl_rearm(SYSCTL_HANDLER_ARGS);
 static int watchdog_sysctl_immutable(SYSCTL_HANDLER_ARGS);
 static int watchdog_sysctl_state(SYSCTL_HANDLER_ARGS);
 
-/* Watchdog management */
-static int watchdog_enable(device_t);
-static int watchdog_disable(device_t);
-static int watchdog_configure(device_t, int, watchdog_action_t);
-static int watchdog_rearm(device_t);
+/* device(4) interface */
+static device_probe_t watchdog_probe;
+static device_attach_t watchdog_attach;
+static device_detach_t watchdog_detach;
+
+/* watchdog(4) interface */
+static watchdog_enable_t watchdog_enable;
+static watchdog_disable_t watchdog_disable;
+static watchdog_configure_t watchdog_configure;
+static watchdog_rearm_t watchdog_rearm;
 
 /*
  * Local data
@@ -95,6 +86,7 @@ static device_method_t watchdog_methods[] =
 	DEVMETHOD(device_probe,		watchdog_probe),
 	DEVMETHOD(device_attach,	watchdog_attach),
 	DEVMETHOD(device_detach,	watchdog_detach),
+
 	DEVMETHOD_END
 };
 
@@ -118,7 +110,9 @@ watchdog_config_init(device_t dev)
 {
 	struct watchdog_softc *ws = device_get_softc(dev);
 
-	ws->ws_timeout = -1;
+	ws->ws_timeout.tv_sec = 0;
+	ws->ws_timeout.tv_nsec = 0;
+
 	ws->ws_action = 0;
 }
 
@@ -127,7 +121,7 @@ watchdog_config_is_valid(device_t dev)
 {
 	struct watchdog_softc *ws = device_get_softc(dev);
 
-	return (ws->ws_timeout > 0 && ws->ws_action != 0);
+	return (ws->ws_timeout.tv_sec > 0 && ws->ws_action != 0);
 }
 
 static __inline uint32_t
@@ -149,85 +143,9 @@ out:
 /*
  * Function definitions
  */
-/* Device interface */
-static int
-watchdog_probe(device_t dev)
-{
-	struct watchdog_ivars *wi = device_get_ivars(dev);
-
-	KASSERT(wi != NULL, ("invalid ivars"));
-
-	if (wi->wi_desc != NULL) {
-		struct sbuf *sb = sbuf_new_auto();
-		sbuf_printf(sb, "Watchdog - %s", wi->wi_desc);
-		sbuf_finish(sb);
-
-		device_set_desc_copy(dev, sbuf_data(sb));
-
-		sbuf_delete(sb);
-	} else {
-		device_set_desc(dev, "Watchdog");
-	}
-
-	return 0;
-}
-
-static int
-watchdog_attach(device_t dev)
-{
-	struct watchdog_softc *ws = device_get_softc(dev);
-	struct watchdog_ivars *wi = device_get_ivars(dev);
-	struct timespec ts;
-	struct sbuf *sb;
-	int error = 0;
-
-	KASSERT(ws != NULL, ("invalid softc"));
-	KASSERT(wi != NULL, ("invalid ivars"));
-
-	/* XXX al:
-	 * Grrrrr.... it would *really* be nice if SYSCTL_ADD_STRING() allowed
-	 * temporary stored string. We would not have to cache these...
-	 */
-	sb = sbuf_new_auto();
-	sbuf_printf(sb, "%b", wi->wi_actions, WATCHDOG_ACTION_DESC);
-	sbuf_finish(sb);
-
-	ws->ws_capabilities_actions = strdup(sbuf_data(sb), M_DEVBUF);
-
-	watchdog_get_max_timeout(dev, &ts);
-
-	sbuf_clear(sb);
-	sbuf_printf(sb, "%d", ts.tv_sec);
-	sbuf_finish(sb);
-	ws->ws_capabilities_max_timeout = strdup(sbuf_data(sb), M_DEVBUF);
-
-	sbuf_delete(sb);
-
-	error = watchdog_setup_sysctl(dev);
-	if (error != 0)
-		goto out;
-
-	/* */
-	watchdog_config_init(dev);
-
-out:
-	return error;
-}
-
-static int
-watchdog_detach(device_t dev)
-{
-	struct watchdog_softc *ws = device_get_softc(dev);
-
-	free(ws->ws_capabilities_max_timeout, M_DEVBUF);
-	free(ws->ws_capabilities_actions, M_DEVBUF);
-
-	return 0;
-}
-
 /* Sysctl helper */
 static int
-watchdog_setup_sysctl(device_t dev)
+watchdog_register_sysctl(device_t dev)
 {
 	struct sysctl_oid_list *child, *config_list, *capabilities_list;
 	struct sysctl_oid *tree, *config_node, *capabilities_node;;
@@ -303,8 +221,8 @@ watchdog_sysctl_config_timeout(SYSCTL_HANDLER_ARGS)
 {
 	device_t dev = oidp->oid_arg1;
 	struct watchdog_softc *ws = device_get_softc(dev);
-	char buf[12];
-	int buflen, error = 0;
+	struct sbuf *sb;
+	int error = 0;
 
 	if (req->newptr != NULL) {
 		struct timespec ts;
@@ -329,11 +247,17 @@ watchdog_sysctl_config_timeout(SYSCTL_HANDLER_ARGS)
 			goto out;
 		}
 
-		ws->ws_timeout = new;
-	} else {
-		buflen = snprintf(buf, sizeof buf, "%d", ws->ws_timeout);
-		error = sysctl_handle_string(oidp, buf, buflen, req);
+		ws->ws_timeout.tv_sec = new;
+		ws->ws_timeout.tv_nsec = 0;
 	}
+
+	sb = sbuf_new_auto();
+	sbuf_printf(sb, "%d", ws->ws_timeout.tv_sec);
+	sbuf_finish(sb);
+
+	error = sysctl_handle_string(oidp, sbuf_data(sb), sbuf_len(sb), req);
+
+	sbuf_delete(sb);
 
 out:
 	return error;
@@ -344,6 +268,7 @@ watchdog_sysctl_config_action(SYSCTL_HANDLER_ARGS)
 {
 	device_t dev = oidp->oid_arg1;
 	struct watchdog_softc *ws = device_get_softc(dev);
+	struct sbuf *sb;
 	int error = 0;
 
 	if (req->newptr != NULL) {
@@ -367,25 +292,20 @@ watchdog_sysctl_config_action(SYSCTL_HANDLER_ARGS)
 		}
 
 		ws->ws_action = action;
-	} else {
-
-		if (ws->ws_action != 0) {
-			struct sbuf *sb;
-
-			sb = sbuf_new_auto();
-			sbuf_printf(sb, "%b", ws->ws_action,
-			    WATCHDOG_ACTION_DESC);
-			sbuf_finish(sb);
-
-			error = sysctl_handle_string(oidp, sbuf_data(sb),
-			    sbuf_len(sb), req);
-
-			sbuf_delete(sb);
-		} else {
-			error = sysctl_handle_string(oidp, "<none>",
-			    sizeof "<none>" - 1 , req);
-		}
 	}
+
+	sb = sbuf_new_auto();
+
+	if (ws->ws_action != 0)
+		sbuf_printf(sb, "%b", ws->ws_action, WATCHDOG_ACTION_DESC);
+	else
+		sbuf_printf(sb, "<none>");
+	sbuf_finish(sb);
+
+	error = sysctl_handle_string(oidp, sbuf_data(sb), sbuf_len(sb), req);
+
+	sbuf_delete(sb);
+
 out:
 	return error;
 }
@@ -410,7 +330,7 @@ watchdog_sysctl_enable(SYSCTL_HANDLER_ARGS)
 			goto out;
 		}
 
-		error = watchdog_configure(dev, ws->ws_timeout, ws->ws_action);
+		error = watchdog_configure(dev, &ws->ws_timeout, ws->ws_action);
 		if (error != 0)
 			goto out;
 
@@ -534,7 +454,70 @@ watchdog_sysctl_state(SYSCTL_HANDLER_ARGS)
 	return error;
 }
 
-/* Watchdog management */
+/* device(4) interface */
+static int
+watchdog_probe(device_t dev)
+{
+
+	return 0;
+}
+
+static int
+watchdog_attach(device_t dev)
+{
+	struct watchdog_softc *ws = device_get_softc(dev);
+	struct watchdog_ivars *wi = device_get_ivars(dev);
+	struct timespec ts;
+	struct sbuf *sb;
+	int error = 0;
+
+	if (wi == NULL) {
+		error = EINVAL;
+		goto out;
+	}
+
+	/* XXX al:
+	 * Grrrrr.... it would *really* be nice if SYSCTL_ADD_STRING() allowed
+	 * temporary stored string. We would not have to cache these...
+	 */
+	sb = sbuf_new_auto();
+	sbuf_printf(sb, "%b", wi->wi_actions, WATCHDOG_ACTION_DESC);
+	sbuf_finish(sb);
+
+	ws->ws_capabilities_actions = strdup(sbuf_data(sb), M_DEVBUF);
+
+	watchdog_get_max_timeout(dev, &ts);
+
+	sbuf_clear(sb);
+	sbuf_printf(sb, "%d", ts.tv_sec);
+	sbuf_finish(sb);
+	ws->ws_capabilities_max_timeout = strdup(sbuf_data(sb), M_DEVBUF);
+
+	sbuf_delete(sb);
+
+	error = watchdog_register_sysctl(dev);
+	if (error != 0)
+		goto out;
+
+	/* */
+	watchdog_config_init(dev);
+
+out:
+	return error;
+}
+
+static int
+watchdog_detach(device_t dev)
+{
+	struct watchdog_softc *ws = device_get_softc(dev);
+
+	free(ws->ws_capabilities_max_timeout, M_DEVBUF);
+	free(ws->ws_capabilities_actions, M_DEVBUF);
+
+	return 0;
+}
+
+/* watchdog(4) interface */
 static int
 watchdog_enable(device_t dev)
 {
@@ -552,24 +535,11 @@ watchdog_disable(device_t dev)
 }
 
 static int
-watchdog_configure(device_t dev, int timeout, watchdog_action_t action)
+watchdog_configure(device_t dev, struct timespec *ts, watchdog_action_t action)
 {
-	struct watchdog_softc *ws = device_get_softc(dev);
 	device_t parent = device_get_parent(dev);
-	struct timespec ts;
-	int error;
 
-	if (!watchdog_config_is_valid(dev)) {
-	       error = EINVAL;
-	       goto out;
-	}
-
-	ts.tv_sec = ws->ws_timeout;
-	ts.tv_nsec = 0;
-
-	error = WATCHDOG_CONFIGURE(parent, &ts, action);
-out:
-	return error;
+	return WATCHDOG_CONFIGURE(parent, ts, action);
 }
 
 static int
